@@ -23,7 +23,8 @@ def test_reconfigure_select_team_filters_stale_default_ids():
         }
     )
 
-    result = asyncio.run(flow.async_step_reconfigure_select_team(entry))
+    flow._get_reconfigure_entry = lambda: entry
+    result = asyncio.run(flow.async_step_reconfigure_select_team())
 
     assert result["step_id"] == "reconfigure_select_team"
     defaults = result["data_schema"]({})

@@ -1,7 +1,6 @@
 {
-    "name": "Handball.net Integration",
-    "homeassistant": "2026.6.2",
-    "render_readme": true,
-    "zip_release": true,
-    "filename": "handballnet.zip"
-  }
+  "name": "Handball.net Community",
+  "homeassistant": "2026.11.0",
+  "render_readme": true,
+  "zip_release": false
+}

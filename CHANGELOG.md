@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.0.32.dev0 – Community-Entwicklungsstand auf main, unveröffentlicht
+
+Dieser Abschnitt beschreibt den zusammengeführten Entwicklungsstand des Forks **Areaman51/hass-handball.net**, kein veröffentlichtes Release und keine vollständige Releaseabnahme. Die folgenden älteren Abschnitte bleiben als ursprüngliche Änderungshistorie erhalten. Insbesondere ist die historische Löschanweisung unter v0.0.29 **nicht** die aktuelle Anleitung zum Fork-Wechsel: bestehende HA-Konfigurationseinträge erhalten; siehe [Installation und Rollback](docs/installation-und-umstieg.md).
+
+### Übernommene Weiterentwicklung aus der PR-88-Historie
+
+- Neuer-API-Referer, verbesserte Erkennung kommender Heim-/Auswärtsspiele und tatsächlich zukünftige `upcoming_matches`.
+- Gesundheitsauswertung ohne pauschale Veraltung mangels API-Zeitstempel, Laufzeitmessungen und Eintragsdiagnose.
+- Geräteverknüpfungen, verbesserte Turnierzuordnung und Sammlung der Turnierspiele über Teamspielpläne.
+- Turnier-Spielplan-Sensor mit kommenden Begegnungen, bis zu 21 jüngsten Begegnungen und Gruppierung nach Spieltag beziehungsweise Kalenderwoche.
+- Mitgelieferte Spielplankarte sowie Team-/Tabellenkarten mit gezielteren DOM-Aktualisierungen und Cache-Busting für Frontenddateien.
+
+### API-Reparaturen im November 2026
+
+- Öffentlichen `client-token` automatisch aus der Webseite laden, pro HA-Instanz zwischenspeichern und parallele Bootstrap-Abfragen koordinieren.
+- User-Agent auf die eigenen handball.net-Anfragen begrenzen; API-Referer bleibt am API-Origin ausgerichtet.
+- Nach 403 einmalig Token erneuern und erneut abfragen; HTTP-, Verbindungs-, JSON- und explizite API-Fehler als Fehler weitergeben statt als erfolgreiche leere Daten zu behandeln.
+- Bekannte Tokenwerte aus begrenzten Fehlerausschnitten entfernen und gescheiterte Antworten nicht als gültige API-Daten cachen.
+- Wesentliche Spielplan-/Turnierfehler an den Coordinator weiterreichen, statt vorherige Daten still durch leere Erfolgsmeldungen zu ersetzen; optionale Daten bleiben teilweise Best Effort.
+
+### Sicherheits- und Robustheitskorrekturen
+
+- Zusätzliche Absicherung der Team-/Tabellenkarten gegen HTML-/Script-Injektion aus angezeigten Werten und URLs.
+- Ungültige Textdekodierung im HTTP-Pfad als kontrollierten Abruffehler behandeln.
+- Ergänzende Python- und Node-Regressionstests für diese Fehlerklassen.
+- Laufzeit-, Authentifizierungs-, Datenbank- und Bytecodedateien aus dem aktuellen Sourcebaum entfernen und gegen erneutes Hinzufügen ignorieren. **Die ursprüngliche Git-Historie bleibt erhalten; historische Inhalte sind dadurch nicht aus alten Commits oder Kopien gelöscht.** Siehe [SECURITY.md](SECURITY.md).
+
+Der öffentliche GitHub-Stand enthält damit zusätzliche Sicherheits-/Robustheitskorrekturen gegenüber dem als Ausgangspunkt geprüften Laufzeitstand. Er ist **nicht vollständig bytegleich mit einer unverändert weiterlaufenden HA-Installation**. Eine Sourceprüfung ist kein Nachweis einer ausgerollten Aktualisierung.
+
+### Dokumentation und Installationsstand
+
+- Deutsche Hauptanleitung, englische Kurzfassung, vollständige Konfigurations-/Entitäten-/Kartenreferenzen und Beitragsdokumentation.
+- Vollständiges Backup, Erhalt bestehender Config-Entries, keine parallele Installation von Original und Fork sowie vorsichtiger Rollback beschrieben.
+- Entwicklungsversion auf `main` mit `zip_release: false`, ohne vorausgesetztes Release-Asset. HACS nur als benutzerdefinierte Quelle und Branch-Auswahl nur, wenn die installierte HACS-Version sie unterstützt; **HACS-Umstieg weiterhin nicht real getestet**.
+
+### Prüfstand und offene Grenzen
+
+- Python-Regressionssuite mit HA-Stubs und ergänzende Node-Tests werden lokal ausgeführt; keine pauschale abschließende Testzahl für jeden späteren Entwicklungscommit.
+- Ein echter API-Smoke gegen ausgewählte Datenpfade war erfolgreich. Das ist weder eine echte HA-Integrationssuite noch eine vollständige Funktions-/Releaseabnahme.
+- Vorhandene GitHub-Workflows bleiben unverändert und führen pytest/Node derzeit nicht aus. HACS-/hassfest-Validierung ist kein Ersatz für diese Tests.
+- Reale HA-UI-/Options-/Service-/Kalender-/Browser- und HACS-Migrationsprüfungen sind gesondert erforderlich. Bekannte Attribut- und Handlerabweichungen sind in [Dashboard-Karten](docs/dashboard-karten.md), [Fehlersuche](docs/fehlersuche.md) und [Entwicklung](docs/entwicklung.md) offengelegt.
 
 ## v0.0.31
 

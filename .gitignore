@@ -13,3 +13,17 @@ config/custom_components/*
 .ha_run.lock
 home-assistant.log*
 core.*
+
+# Local environments, tests and secrets
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+dist/
