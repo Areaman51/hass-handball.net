@@ -42,17 +42,13 @@ class HandballNetAPI:
 
     async def _make_new_api_request(
         self, endpoint: str, params: Dict[str, Any], referer: str
-    ) -> Optional[Dict[str, Any]]:
-        """Make HTTP request to the new (/api/new) handball.net API"""
-        try:
-            payload = await async_get_json(self.hass, endpoint, params, referer)
-        except HandballNetHTTPError:
-            return None
+    ) -> Dict[str, Any]:
+        """Fetch new-API data without disguising failures as empty results."""
+        payload = await async_get_json(self.hass, endpoint, params, referer)
 
         if not payload or payload.get("success") is False:
-            # Some endpoints (e.g. matches/{id}/events) omit "success" entirely
-            # on a successful response, so only an explicit False rejects.
-            return None
+            # Events and standings may omit "success" on valid responses.
+            raise HandballNetHTTPError(None, endpoint, "API reported failure or empty response")
 
         return payload
 

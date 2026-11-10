@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import HandballNetAPI
+from .http_client import HandballNetHTTPError
 from .const import (
     CONF_ENTITY_TYPE,
     CONF_TEAM_ID,
@@ -78,7 +79,10 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._reset_perf_snapshot()
         update_started = time.perf_counter()
         if self._entity_type == ENTITY_TYPE_TOURNAMENT:
-            result = await self._async_update_tournament_data()
+            try:
+                result = await self._async_update_tournament_data()
+            except HandballNetHTTPError as err:
+                raise UpdateFailed(f"Could not fetch tournament data: {err}") from err
             self._log_perf(
                 "update_total",
                 update_started,
@@ -110,10 +114,8 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._team_items, team_results, strict=False
         ):
             if isinstance(result, Exception):
-                _LOGGER.error("Error updating team %s: %s", team_id, result)
-                team_bucket = self._create_error_team_bucket(
-                    team_id, team_name, str(result)
-                )
+                # Keep previous coordinator/bucket data; HA marks the fetch failed.
+                raise UpdateFailed(f"Error updating team {team_id}: {result}") from result
             else:
                 team_bucket = result
 
@@ -229,8 +231,9 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
         if isinstance(schedule_result, Exception):
-            _LOGGER.debug("Could not fetch schedule for %s: %s", team_id, schedule_result)
-            schedule_data = None
+            raise UpdateFailed(
+                f"Could not fetch schedule for {team_id}: {schedule_result}"
+            ) from schedule_result
         else:
             schedule_data = schedule_result
 
@@ -402,6 +405,8 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             return await self._api.get_team_table_position(team_id, tournament_id)
+        except HandballNetHTTPError as err:
+            raise UpdateFailed(f"Could not fetch table for {team_id}: {err}") from err
         except Exception as err:
             _LOGGER.debug("Could not fetch table position for %s: %s", team_id, err)
             return None
@@ -772,12 +777,9 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ):
                 processed_team_ids.add(team_id)
                 if isinstance(matches_result, Exception):
-                    _LOGGER.debug(
-                        "Could not get tournament matches for team %s: %s",
-                        team_id,
-                        matches_result,
-                    )
-                    continue
+                    raise UpdateFailed(
+                        f"Could not get tournament matches for team {team_id}: {matches_result}"
+                    ) from matches_result
 
                 for match in matches_result or []:
                     match_id = match.get("id")

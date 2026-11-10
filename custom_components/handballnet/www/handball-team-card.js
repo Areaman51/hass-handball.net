@@ -10,6 +10,30 @@
  *   next_match_entity:     sensor.xyz_naechstes_spiel # optional
  *   live_ticker_entity:    sensor.xyz_live_ticker     # optional – shows live score
  */
+// Escape data at HTML text/quoted-attribute sinks, never generated markup.
+function handballTeamEsc(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Permit only HTTP(S) or relative logos; block browser URL normalization tricks.
+function handballTeamLogoUrl(value) {
+  if (typeof value !== "string") return "";
+  const url = value.trim();
+  if (!url || /[\u0000-\u001f\u007f\\]/.test(value) || url.startsWith("//")) return "";
+  if (/^[a-z][a-z\d+.-]*:/i.test(url) && !/^https?:\/\//i.test(url)) return "";
+  try {
+    const parsed = new URL(url, "https://handball-card.invalid/");
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? url : "";
+  } catch {
+    return "";
+  }
+}
+
 class HandballTeamCard extends HTMLElement {
   static async getConfigElement() {
     return document.createElement("handball-team-card-editor");
@@ -69,9 +93,10 @@ class HandballTeamCard extends HTMLElement {
 
   _teamLogoHtml(team, cssClass) {
     if (!team) return "";
-    return team.logo
-      ? `<img src="${team.logo}" alt="${team.name || ""}" class="${cssClass}" decoding="sync">`
-      : `<span class="${cssClass} placeholder"></span>`;
+    const logo = handballTeamLogoUrl(team.logo);
+    return logo
+      ? `<img src="${handballTeamEsc(logo)}" alt="${handballTeamEsc(team.name || "")}" class="${handballTeamEsc(cssClass)}" decoding="sync">`
+      : `<span class="${handballTeamEsc(cssClass)} placeholder"></span>`;
   }
 
   // ── sections ─────────────────────────────────────────────────────────────
@@ -91,12 +116,12 @@ class HandballTeamCard extends HTMLElement {
         <div class="live-matchup">
           <div class="live-team">
             ${this._teamLogoHtml(m.homeTeam, "live-logo")}
-            <span class="live-team-name">${m.homeTeam?.name ?? ""}</span>
+            <span class="live-team-name">${handballTeamEsc(m.homeTeam?.name ?? "")}</span>
           </div>
-          <div class="live-score">${hg}&thinsp;:&thinsp;${ag}</div>
+          <div class="live-score">${handballTeamEsc(hg)}&thinsp;:&thinsp;${handballTeamEsc(ag)}</div>
           <div class="live-team">
             ${this._teamLogoHtml(m.awayTeam, "live-logo")}
-            <span class="live-team-name">${m.awayTeam?.name ?? ""}</span>
+            <span class="live-team-name">${handballTeamEsc(m.awayTeam?.name ?? "")}</span>
           </div>
         </div>
       </div>`;
@@ -120,40 +145,40 @@ class HandballTeamCard extends HTMLElement {
         <div class="section-title">Tabellenplatz</div>
         <div class="pos-row">
           <div class="rank-block">
-            <span class="rank-num">${a.position}</span>
+            <span class="rank-num">${handballTeamEsc(a.position)}</span>
             <span class="rank-dot">.</span>
           </div>
           <div class="pos-stats">
             <div class="wdl-row">
               <div class="wdl-cell win">
-                <span class="wdl-num">${a.wins ?? "–"}</span>
+                <span class="wdl-num">${handballTeamEsc(a.wins ?? "–")}</span>
                 <span class="wdl-lbl">S</span>
               </div>
               <div class="wdl-cell draw">
-                <span class="wdl-num">${a.draws ?? "–"}</span>
+                <span class="wdl-num">${handballTeamEsc(a.draws ?? "–")}</span>
                 <span class="wdl-lbl">U</span>
               </div>
               <div class="wdl-cell loss">
-                <span class="wdl-num">${a.losses ?? "–"}</span>
+                <span class="wdl-num">${handballTeamEsc(a.losses ?? "–")}</span>
                 <span class="wdl-lbl">N</span>
               </div>
             </div>
             <div class="meta-row">
               <span class="meta-item">
                 <span class="meta-lbl">Sp</span>
-                <span class="meta-val">${a.games_played ?? "–"}</span>
+                <span class="meta-val">${handballTeamEsc(a.games_played ?? "–")}</span>
               </span>
               <span class="meta-item">
                 <span class="meta-lbl">Tore</span>
-                <span class="meta-val">${a.goals_scored ?? "–"}:${a.goals_conceded ?? "–"}</span>
+                <span class="meta-val">${handballTeamEsc(a.goals_scored ?? "–")}:${handballTeamEsc(a.goals_conceded ?? "–")}</span>
               </span>
               <span class="meta-item">
                 <span class="meta-lbl">TD</span>
-                <span class="meta-val ${diffClass}">${diffLabel}</span>
+                <span class="meta-val ${diffClass}">${handballTeamEsc(diffLabel)}</span>
               </span>
               <span class="meta-item points-item">
                 <span class="meta-lbl">Pkt</span>
-                <span class="meta-val points-val">${a.points ?? "–"}</span>
+                <span class="meta-val points-val">${handballTeamEsc(a.points ?? "–")}</span>
               </span>
             </div>
           </div>
@@ -174,19 +199,19 @@ class HandballTeamCard extends HTMLElement {
     return `
       <div class="section">
         <div class="section-title">Nächstes Spiel</div>
-        ${dateStr ? `<div class="match-date">${dateStr}</div>` : ""}
+        ${dateStr ? `<div class="match-date">${handballTeamEsc(dateStr)}</div>` : ""}
         <div class="matchup">
           <div class="match-team">
             ${this._teamLogoHtml(home, "match-logo")}
-            <span class="match-name">${home.name ?? ""}</span>
+            <span class="match-name">${handballTeamEsc(home.name ?? "")}</span>
           </div>
           <div class="match-vs">vs</div>
           <div class="match-team">
             ${this._teamLogoHtml(away, "match-logo")}
-            <span class="match-name">${away.name ?? ""}</span>
+            <span class="match-name">${handballTeamEsc(away.name ?? "")}</span>
           </div>
         </div>
-        ${field ? `<div class="match-field"><ha-icon icon="mdi:map-marker" style="--mdi-icon-size:14px"></ha-icon> ${field}</div>` : ""}
+        ${field ? `<div class="match-field"><ha-icon icon="mdi:map-marker" style="--mdi-icon-size:14px"></ha-icon> ${handballTeamEsc(field)}</div>` : ""}
       </div>`;
   }
 
@@ -474,7 +499,7 @@ class HandballTeamCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="card-header">
-          <span class="card-title">${teamName}</span>
+          <span class="card-title">${handballTeamEsc(teamName)}</span>
           ${isLive ? '<span class="live-chip">LIVE</span>' : ""}
         </div>
         ${this._renderLive(liveState)}
@@ -573,7 +598,7 @@ class HandballTeamCardEditor extends HTMLElement {
             id="title"
             type="text"
             data-key="title"
-            value="${this._config?.title ?? ""}"
+            value="${handballTeamEsc(this._config?.title ?? "")}"
             placeholder="z. B. SG Musterstadt"
           />
         </div>
@@ -584,7 +609,7 @@ class HandballTeamCardEditor extends HTMLElement {
             id="table_position_entity"
             type="text"
             data-key="table_position_entity"
-            value="${this._config?.table_position_entity ?? ""}"
+            value="${handballTeamEsc(this._config?.table_position_entity ?? "")}"
             list="team-sensor-entities"
             placeholder="sensor.mein_team_table_position"
           />
@@ -596,7 +621,7 @@ class HandballTeamCardEditor extends HTMLElement {
             id="next_match_entity"
             type="text"
             data-key="next_match_entity"
-            value="${this._config?.next_match_entity ?? ""}"
+            value="${handballTeamEsc(this._config?.next_match_entity ?? "")}"
             list="team-sensor-entities"
             placeholder="sensor.mein_team_naechstes_spiel"
           />
@@ -608,7 +633,7 @@ class HandballTeamCardEditor extends HTMLElement {
             id="live_ticker_entity"
             type="text"
             data-key="live_ticker_entity"
-            value="${this._config?.live_ticker_entity ?? ""}"
+            value="${handballTeamEsc(this._config?.live_ticker_entity ?? "")}"
             list="team-sensor-entities"
             placeholder="sensor.mein_team_live_ticker"
           />
@@ -619,7 +644,7 @@ class HandballTeamCardEditor extends HTMLElement {
         </div>
       </div>
       <datalist id="team-sensor-entities">
-        ${sensorEntities.map((entityId) => `<option value="${entityId}"></option>`).join("")}
+        ${sensorEntities.map((entityId) => `<option value="${handballTeamEsc(entityId)}"></option>`).join("")}
       </datalist>
     `;
 

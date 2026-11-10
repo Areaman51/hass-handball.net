@@ -10,6 +10,30 @@
  *   highlight_team: "TSV Foo"    # optional – highlights a specific team row
  *   show_logo: true              # optional, default true
  */
+// Escape data at HTML text/quoted-attribute sinks, never generated markup.
+function handballTableEsc(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Permit only HTTP(S) or relative logos; block browser URL normalization tricks.
+function handballTableLogoUrl(value) {
+  if (typeof value !== "string") return "";
+  const url = value.trim();
+  if (!url || /[\u0000-\u001f\u007f\\]/.test(value) || url.startsWith("//")) return "";
+  if (/^[a-z][a-z\d+.-]*:/i.test(url) && !/^https?:\/\//i.test(url)) return "";
+  try {
+    const parsed = new URL(url, "https://handball-card.invalid/");
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? url : "";
+  } catch {
+    return "";
+  }
+}
+
 class HandballTournamentTableCard extends HTMLElement {
   constructor() {
     super();
@@ -155,7 +179,7 @@ class HandballTournamentTableCard extends HTMLElement {
       this._html = `
         <ha-card>
           <div style="padding:16px;color:var(--error-color)">
-            Entity <code>${this._config.entity}</code> not found.
+            Entity <code>${handballTableEsc(this._config.entity)}</code> not found.
           </div>
         </ha-card>`;
       return;
@@ -183,9 +207,10 @@ class HandballTournamentTableCard extends HTMLElement {
         else if (promoted) rowClass += " promoted";
         else if (relegated) rowClass += " relegated";
 
+        const logo = handballTableLogoUrl(row.team_logo);
         const logoHtml =
-          showLogo && row.team_logo
-            ? `<img src="${row.team_logo}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
+          showLogo && logo
+            ? `<img src="${handballTableEsc(logo)}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
             : `<span class="team-logo-placeholder"></span>`;
 
         const rawDiff = Number(row.goal_difference);
@@ -197,20 +222,20 @@ class HandballTournamentTableCard extends HTMLElement {
 
         return `
           <tr class="${rowClass}">
-            <td class="pos">${row.position}</td>
+            <td class="pos">${handballTableEsc(row.position)}</td>
             <td class="team">
               ${showLogo ? logoHtml : ""}
-              <span class="team-name">${row.team_name || "–"}</span>
+              <span class="team-name">${handballTableEsc(row.team_name || "–")}</span>
             </td>
-            <td>${row.games_played ?? "–"}</td>
-            <td class="wins">${row.wins ?? "–"}</td>
-            <td class="draws">${row.draws ?? "–"}</td>
-            <td class="losses">${row.losses ?? "–"}</td>
-            <td class="goals">${row.goals_scored ?? "–"}:${
-          row.goals_conceded ?? "–"
+            <td>${handballTableEsc(row.games_played ?? "–")}</td>
+            <td class="wins">${handballTableEsc(row.wins ?? "–")}</td>
+            <td class="draws">${handballTableEsc(row.draws ?? "–")}</td>
+            <td class="losses">${handballTableEsc(row.losses ?? "–")}</td>
+            <td class="goals">${handballTableEsc(row.goals_scored ?? "–")}:${
+          handballTableEsc(row.goals_conceded ?? "–")
         }</td>
-            <td class="td ${rawDiff > 0 ? "positive" : rawDiff < 0 ? "negative" : ""}">${goalDiff}</td>
-            <td class="points">${row.points ?? "–"}</td>
+            <td class="td ${rawDiff > 0 ? "positive" : rawDiff < 0 ? "negative" : ""}">${handballTableEsc(goalDiff)}</td>
+            <td class="points">${handballTableEsc(row.points ?? "–")}</td>
           </tr>`;
       })
       .join("");
@@ -340,8 +365,8 @@ class HandballTournamentTableCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="card-header">
-          <h2>${tournamentName}</h2>
-          ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
+          <h2>${handballTableEsc(tournamentName)}</h2>
+          ${subtitle ? `<div class="subtitle">${handballTableEsc(subtitle)}</div>` : ""}
         </div>
         <table>
           <thead>
@@ -475,7 +500,7 @@ class HandballTournamentTableCardEditor extends HTMLElement {
             id="entity"
             type="text"
             data-key="entity"
-            value="${this._config?.entity ?? ""}"
+            value="${handballTableEsc(this._config?.entity ?? "")}"
             list="tournament-sensor-entities"
             placeholder="sensor.mein_turnier_tabelle"
           />
@@ -487,7 +512,7 @@ class HandballTournamentTableCardEditor extends HTMLElement {
             id="title"
             type="text"
             data-key="title"
-            value="${this._config?.title ?? ""}"
+            value="${handballTableEsc(this._config?.title ?? "")}"
             placeholder="z. B. Oberliga Nord"
           />
         </div>
@@ -498,7 +523,7 @@ class HandballTournamentTableCardEditor extends HTMLElement {
             id="highlight_team"
             type="text"
             data-key="highlight_team"
-            value="${this._config?.highlight_team ?? ""}"
+            value="${handballTableEsc(this._config?.highlight_team ?? "")}"
             placeholder="z. B. TSV Musterstadt"
           />
         </div>
@@ -514,7 +539,7 @@ class HandballTournamentTableCardEditor extends HTMLElement {
         </div>
       </div>
       <datalist id="tournament-sensor-entities">
-        ${sensorEntities.map((entityId) => `<option value="${entityId}"></option>`).join("")}
+        ${sensorEntities.map((entityId) => `<option value="${handballTableEsc(entityId)}"></option>`).join("")}
       </datalist>
     `;
 

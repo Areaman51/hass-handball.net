@@ -100,5 +100,18 @@ def _install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
     sys.modules["homeassistant.core"] = core
 
+    update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
+
+    class UpdateFailed(Exception):
+        pass
+
+    class DataUpdateCoordinator:
+        def __class_getitem__(cls, item):
+            return cls
+
+    update_coordinator.UpdateFailed = UpdateFailed
+    update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
+    sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
+
 
 _install_homeassistant_stubs()

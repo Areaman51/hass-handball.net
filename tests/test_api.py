@@ -10,45 +10,32 @@ def api():
 
 @pytest.mark.asyncio
 async def test_league_table_caching(api):
-    # Setup mock for _make_request
-    api._make_request = AsyncMock(return_value={"data": [{"rank": 1}]})
-
-    # First call - should trigger request
+    row = {"round": 1, "position": 1, "team": {"id": 1, "name": "Team A"}}
+    api._make_new_api_request = AsyncMock(return_value={"data": [row]})
+    expected = api._normalize_standings([row])
     with patch("time.time", return_value=1000):
-        result1 = await api.get_league_table("123")
+        assert await api.get_league_table("123") == expected
+    assert api._make_new_api_request.await_count == 1
+    with patch("time.time", return_value=2800):
+        assert await api.get_league_table("123") == expected
+    assert api._make_new_api_request.await_count == 1
+    with patch("time.time", return_value=4601):
+        assert await api.get_league_table("123") == expected
+    assert api._make_new_api_request.await_count == 2
 
-    assert result1 == [{"rank": 1}]
-    assert api._make_request.call_count == 1
-
-    # Second call - within TTL - should NOT trigger request
-    with patch("time.time", return_value=1000 + 1800): # +30 mins
-        result2 = await api.get_league_table("123")
-
-    assert result2 == [{"rank": 1}]
-    assert api._make_request.call_count == 1
-
-    # Third call - after TTL - SHOULD trigger request
-    with patch("time.time", return_value=1000 + 3601): # +1 hour 1 sec
-        result3 = await api.get_league_table("123")
-
-    assert result3 == [{"rank": 1}]
-    assert api._make_request.call_count == 2
 
 @pytest.mark.asyncio
 async def test_league_table_no_cache_on_error(api):
-    # Setup mock to return None (error)
-    api._make_request = AsyncMock(return_value=None)
+    from custom_components.handballnet.http_client import HandballNetHTTPError
 
-    result = await api.get_league_table("123")
-    assert result is None
-
-    # If we call again, it should try again (no cache for None)
-    api._make_request.reset_mock()
-    api._make_request.return_value = {"data": [{"rank": 2}]}
-
-    result = await api.get_league_table("123")
-    assert result == [{"rank": 2}]
-    assert api._make_request.call_count == 1
+    api._make_new_api_request = AsyncMock(side_effect=HandballNetHTTPError(403, "standings", "denied"))
+    with pytest.raises(HandballNetHTTPError):
+        await api.get_league_table("123")
+    assert "123" not in api._league_table_cache
+    row = {"round": 1, "position": 2, "team": {"id": 2, "name": "Team B"}}
+    api._make_new_api_request = AsyncMock(return_value={"data": [row]})
+    assert await api.get_league_table("123") == api._normalize_standings([row])
+    api._make_new_api_request.assert_awaited_once()
 
 
 @pytest.mark.asyncio
