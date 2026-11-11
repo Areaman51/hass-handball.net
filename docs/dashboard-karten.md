@@ -32,6 +32,7 @@ Das ist eine **Ressourcendefinition**, keine Karte und keine Integrationskonfigu
 | `next_match_entity` | mindestens eines der drei Entitätsfelder | Nächstes-Spiel-Sensor mit `home_team`/`away_team` als Objekten |
 | `live_ticker_entity` | siehe oben | Live-Ticker-Sensor, **nicht** Live-Binärsensor oder Live-Events-Sensor |
 | `table_position_entity` | siehe oben | Sensor mit Rang im Attribut `position` und Tabellenstatistik |
+| `logo_overrides` | nein | Eigene Bildadressen je Mannschaft; siehe gemeinsamen Abschnitt unten |
 
 Ein Minimalbeispiel, das den normalen Team-Sensor nutzt:
 
@@ -95,6 +96,7 @@ show_logo: true
 | `title` | Optional; sonst `tournament_name` oder „Tabelle“ |
 | `highlight_team` | Optional; vollständiger Teamname, verglichen ohne äußere Leerzeichen und unabhängig von Groß-/Kleinschreibung |
 | `show_logo` | Standard `true`; nur `false` schaltet Logos ab |
+| `logo_overrides` | Optional; eigene Bildadressen je Mannschaft, ohne `show_logo` zu übergehen |
 | `debug` | Optional `true`; technische Zähler für Instanz, `hass`-Updates und DOM-Schreibvorgänge; keine API-Gesundheitsanzeige |
 
 Angezeigt werden Rang, Mannschaft, Spiele, Siege, Unentschieden, Niederlagen, Tore, Tordifferenz und Punkte. Auf-/Abstiegsmarkierungen erscheinen nur, wenn entsprechende Daten vorhanden sind; die aktuelle API-Normalisierung setzt sie nicht verlässlich. Beim speziellen Stub-Entitätsnamen der Kartenvorschau gibt es ebenfalls Musterdaten.
@@ -115,6 +117,7 @@ highlight_team: SG Beispielstadt
 |---|---|
 | `entity` | Pflicht; Sensor mit `matchdays` und `current_matchday_index` |
 | `table_entity` | Optional; Tabellen-Sensor derselben Staffel, ergänzt Logos über Teamnamen |
+| `logo_overrides` | Optional; eigene Bildadressen je Mannschaft, auch ohne Tabellen-Sensor |
 | `title` | Optional; wird dem Spieltagsnamen vorangestellt |
 | `highlight_team` | Optional; vollständiger Teamname, ohne Beachtung von Groß-/Kleinschreibung und äußeren Leerzeichen |
 
@@ -123,6 +126,52 @@ Die Pfeile blättern durch die gelieferten Spieltage; **Aktuell** folgt wieder d
 Falls nicht jede Partie eine erkannte Rundennummer enthält, gruppiert der Sensor nach **ISO-Kalenderwochen in UTC**. Ein Nachholspiel steht dann bei seinem tatsächlichen Termin, nicht zwingend beim ursprünglichen Spieltag. „Aktuell“ nutzt den mittleren angesetzten Termin der Gruppe plus zwei Stunden; es ist kein offizieller Ligastatus.
 
 Die Team- und Tabellenkarte besitzen einen eigenen Konfigurationseditor. Die Spielplankarte hat derzeit keinen solchen Editor; die manuelle YAML-Konfiguration ist der verlässliche dokumentierte Weg.
+
+## Eigene Vereinslogos: `logo_overrides`
+
+Alle drei Karten unterstützen optional dieselbe Zuordnung **Mannschaftsname → Bildadresse**. Sie ist nicht auf bestimmte Vereine oder Wettbewerbe beschränkt. Damit lassen sich beispielsweise bereits beschnittene Vorschaubilder oder JPEGs mit eingebranntem Hintergrund durch eine bessere vorhandene Grafik ersetzen. Die Karte rekonstruiert keine fehlenden Bildteile und entfernt keine Farben aus einem Wappen.
+
+### Schritt für Schritt: ein Logo austauschen
+
+1. **Geeignete Grafik besorgen:** Ein vollständiges, gut lesbares Vereinslogo verwenden, vorzugsweise PNG. Nutzungsrechte beachten. Ein bereits beschnittenes Bild wird durch einen anderen Dateinamen oder CSS nicht wieder vollständig; ein schwarzer JPEG-Hintergrund wird nicht automatisch transparent.
+2. **Bild bereitstellen:** Für eine lokale Datei im Home-Assistant-Konfigurationsverzeichnis den Ordner `www/vereinslogos` anlegen und beispielsweise `beispielstadt.png` hineinkopieren, etwa über eine vorhandene Dateiverwaltung oder Samba-Freigabe. Das ist eine Bilddatei, keine Änderung an `configuration.yaml`. Die zugehörige Browseradresse lautet `/local/vereinslogos/beispielstadt.png` – `www` wird in der URL also zu `local`. Alternativ eine direkt erreichbare Bildadresse verwenden, nicht die Adresse einer Webseite mit eingebettetem Bild. Bei HTTPS-Zugriff auf HA ebenfalls HTTPS für externe Bilder bevorzugen.
+3. **Mannschaftsnamen prüfen:** Den vollständigen Namen aus der Tabelle beziehungsweise aus `home_team.name`/`away_team.name` des Nächste-Spiel-Sensors übernehmen. Diese Attribute stehen unter den HA-Zuständen. Zusätze wie „2“ oder unterschiedliche Mannschaftsnamen bleiben relevant; Groß-/Kleinschreibung und überzählige Leerzeichen werden dagegen vereinheitlicht.
+4. **Karte bearbeiten:** Im Dashboard die betreffende Karte bearbeiten, ihren YAML-/Code-Editor öffnen und den unten gezeigten `logo_overrides`-Block **zusätzlich zu den bisherigen Feldern** eintragen. Den vorhandenen Kartentyp und die eigenen Entitäts-IDs erhalten. Das Beispiel ist kein Ersatz für die vollständige eigene Kartenkonfiguration.
+5. **Weitere Karten berücksichtigen:** Soll das Logo auch in Tabelle und Spielplan erscheinen, denselben Zuordnungsblock in deren Karten ergänzen. Die Einstellung ist derzeit **pro Karte**, nicht zentral über den Optionen-Dialog der Integration.
+6. **Speichern und prüfen:** Karte speichern und das Dashboard vollständig neu laden. Für eine geänderte Logo-Zuordnung oder eine neue Bilddatei ist kein Core-Neustart nötig; das setzt voraus, dass die unterstützende Kartenversion bereits installiert ist. Die Bildadresse bei Problemen direkt im Browser öffnen und Schreibweise, Dateiendung und Dateipfad kontrollieren. Bei einem gerade erst angelegten `www`-Verzeichnis prüfen, ob die Instanz `/local/` bereits bereitstellt; falls nicht, kann für diese erstmalige Einrichtung ein regulärer, bewusst eingeplanter HA-Neustart erforderlich sein.
+
+Beispiel für eine einzelne Teamkarte:
+
+```yaml
+type: custom:handball-team-card
+next_match_entity: sensor.sg_beispielstadt_naechstes_spiel
+logo_overrides:
+  "SG Beispielstadt": /local/vereinslogos/beispielstadt.png
+  "TSV Anderer Ort": https://meinverein.example/bilder/wappen.png
+```
+
+Die Namen und Adressen sind **Platzhalter**. Die lokale Datei muss tatsächlich unter `www/vereinslogos/beispielstadt.png` innerhalb der HA-Konfiguration liegen; HA stellt sie dann unter `/local/vereinslogos/beispielstadt.png` bereit. Für eine externe Bildadresse die Verfügbarkeit, Nutzungsrechte und mögliche Zugriffsanforderungen prüfen. Eine PNG-Datei ist nicht automatisch transparent.
+
+Denselben `logo_overrides`-Block kann man auch in die Konfiguration von `handball-tournament-table-card` und `handball-schedule-card` aufnehmen. Die Zuordnung gehört zur **jeweiligen Karte**, nicht zu einer globalen HA-Einstellung. Namen so verwenden, wie sie in deren Mannschaftsdaten stehen; Groß-/Kleinschreibung, äußere Leerzeichen und mehrfache Leerzeichen werden beim Vergleich vereinheitlicht. Eine Namensänderung oder ein abweichender Mannschaftszusatz kann eine weitere Zuordnung erfordern; es handelt sich nicht um eine unscharfe Vereinssuche.
+
+- Ohne passende Zuordnung bleibt das bisherige API-Logo erhalten.
+- Die Teamkarte berücksichtigt Ersatzlogos im nächsten Spiel und im Live-Bereich, jeweils für Heim und Gast.
+- Die Tabellenkarte berücksichtigt sie pro Mannschaftszeile; `show_logo: false` bleibt wirksam.
+- Die Spielplankarte kann ein passendes Ersatzlogo auch ohne `table_entity` zeigen. Für nicht zugeordnete Teams kommen die bisherigen Logos weiterhin aus der optionalen Tabelle.
+- Zulässig sind HTTP-/HTTPS- und relative Bildadressen. Unsichere Schemes, protokollrelative Adressen, Backslashes und Steuerzeichen werden abgewiesen. Ungültige Bildwerte ersetzen keine gültigen API-Logos.
+- Eine gültige Adresse garantiert noch kein abrufbares Bild. Bei einem Ladefehler versucht die Karte das API-Logo und endet bei weiterem Fehlschlag mit einem neutralen leeren Bildplatz statt einer Endlosschleife. Fehlgeschlagene Quellen werden pro Karteninstanz bis zur erneuten Konfiguration beziehungsweise zum Neuladen gemerkt; gewöhnliche HA-Zustandsupdates starten keine dauernden Wiederholungen.
+- `logo_overrides` muss eine Zuordnung sein, keine Liste oder einzelne Zeichenkette. Falsche Containerformate führen zu einer verständlichen Konfigurationsfehlermeldung; ungültige einzelne Bildwerte verwenden dagegen den API-Fallback.
+- Die bestehenden visuellen Editoren behalten den Block beim Ändern anderer Felder bei; die Logo-Zuordnung selbst wird im YAML-Editor gepflegt.
+
+### Ein bereits verwendetes Bild aktualisieren oder zurücksetzen
+
+- **Bildinhalt austauschen:** Lokale `/local/`-Dateien können von Browsern und Apps länger gecacht werden. Für eine neue Grafik vorzugsweise einen neuen Dateinamen verwenden, etwa `beispielstadt-v2.png`, und die Zuordnung anpassen. Alternativ den Versionsparameter ändern, etwa `/local/vereinslogos/beispielstadt.png?v=2`. Danach die Karte speichern und vollständig neu laden. Eine fehlerhafte Bildquelle wird bis zur erneuten Konfiguration/Neuladung bewusst nicht dauernd erneut versucht.
+- **Wieder das API-Logo verwenden:** Den betreffenden Mannschaftseintrag aus `logo_overrides` entfernen und speichern. Gibt es keine weiteren Zuordnungen, kann der gesamte Block entfallen. Auch dann die Karte neu laden.
+- **Weiter altes Bild sichtbar:** Im Browser einen Hard-Reload durchführen; in der Companion-App gegebenenfalls den Frontend-Cache zurücksetzen. Keine zweite Kartenressource hinzufügen und keinen Integrationseintrag löschen.
+
+**Noch keine zentrale Logo-Verwaltung:** Unter **Einstellungen → Geräte & Dienste → Handball.net → Optionen/Konfigurieren** werden derzeit nur Aktualisierungsintervalle gepflegt. Dort ist in diesem Stand weder eine Logo-Auswahl noch ein Bildupload implementiert. Die obige Kartenkonfiguration ist der unterstützte Weg.
+
+Ein weißes Rechteck oder schwarzer Hintergrund, der bereits zur Quelldatei gehört, verschwindet durch `object-fit: contain` nicht. Für einen anderen Hintergrund ist eine geeignete alternative Grafik nötig. Vereinsbilder werden nicht automatisch gesucht oder als Bestandteil dieses MIT-Repositories weiterverteilt.
 
 ## Ohne Custom Cards
 

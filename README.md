@@ -33,6 +33,7 @@ Dieser Fork führt Verbesserungen aus der PR-88-Historie, zusätzliche Reparatur
 - Pro Team Spiel-, Statistik-, Tabellen-, Gesundheits- und Live-Sensoren sowie einen Spielplankalender bereitstellen.
 - Turniertabelle, Spielplan nach Spieltagen und Kalender anzeigen; bei fehlender Tabelle einen Hilfssensor für verbleibende Teams anlegen.
 - Mitgelieferte Karten: `handball-team-card`, `handball-tournament-table-card`, `handball-schedule-card`.
+- Optional eigene Vereinsbilder über `logo_overrides` statt fehlerhafter API-Vorschaubilder verwenden; [Konfiguration und Grenzen](docs/dashboard-karten.md#eigene-vereinslogos-logo_overrides).
 - API-Fehler protokollieren und Diagnosedaten zum Prüfen bereitstellen.
 
 Die Daten kommen von einem externen Dienst. Vollständigkeit, Verfügbarkeit und Live-Aktualität sind nicht garantiert. „Live“ wird überwiegend aus einem **Zweistundenfenster ab angesetztem Spielbeginn** abgeleitet, nicht aus einem bestätigten Spielstatus. API-Caches begrenzen die tatsächliche Aktualität. Pokale ohne Tabelle sind eingeschränkt, weil ein Teilnehmer-Fallback noch die alte API verwendet. Weitere Einschränkungen stehen in der [Entitätenreferenz](docs/entitaeten.md) und der [Kartenanleitung](docs/dashboard-karten.md).
@@ -148,6 +149,10 @@ highlight_team: SG Beispielstadt
 ```
 
 **Bekannte Einschränkung der Teamkarte:** `table_position_entity` ist ein echter Konfigurationsschlüssel, die Karte erwartet aber ein Attribut `position`. Der normale Team-Tabellenplatzsensor liefert den Rang nur als Zustand, nicht als solches Attribut. Damit bleibt dieser Kartenabschnitt derzeit leer. Ein vorhandener Turnier-Positionssensor liefert das benötigte Attribut; die [Kartenanleitung](docs/dashboard-karten.md) zeigt beide Fälle und die Ressourcen-Fehlersuche. Auch Vorschaudaten sind kein Funktionsnachweis.
+
+### Vereinslogos austauschen
+
+Bereits beschnittene oder mit einem unerwünschten Hintergrund gelieferte API-Logos lassen sich in **allen drei Karten** durch eine eigene vorhandene Bildquelle ersetzen. Die [Schritt-für-Schritt-Anleitung](docs/dashboard-karten.md#schritt-für-schritt-ein-logo-austauschen) erklärt lokale Dateien unter `www/vereinslogos`, externe Bildadressen, die Zuordnung per `logo_overrides`, Bildwechsel trotz Browsercache und die Rückkehr zum API-Logo. Der Block wird derzeit je Karte gepflegt; eine zentrale Logo-Verwaltung im Optionen-Dialog der Integration ist **noch nicht enthalten**.
 
 ## Aktualisierung und Fehlersuche
 

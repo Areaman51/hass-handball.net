@@ -12,6 +12,13 @@ Dieser Abschnitt beschreibt den zusammengeführten Entwicklungsstand des Forks *
 - Turnier-Spielplan-Sensor mit kommenden Begegnungen, bis zu 21 jüngsten Begegnungen und Gruppierung nach Spieltag beziehungsweise Kalenderwoche.
 - Mitgelieferte Spielplankarte sowie Team-/Tabellenkarten mit gezielteren DOM-Aktualisierungen und Cache-Busting für Frontenddateien.
 
+### Optionale Logoquellen
+
+- Alle drei Dashboard-Karten unterstützen `logo_overrides`: optionale Bildadressen je Mannschaftsname, unabhängig von bestimmten Vereinen oder Wettbewerben.
+- Namensabgleich vereinheitlicht Groß-/Kleinschreibung und Leerzeichen. Ohne passende gültige Zuordnung bleibt das API-Bild erhalten; fehlschlagende Ersatzbilder fallen auf das API-Bild und gegebenenfalls einen neutralen leeren Bildplatz zurück.
+- Sichere URL-Auswahl und HTML-Escaping bleiben erhalten; die Spielplankarte kann Ersatzlogos auch ohne Tabellenentität zeigen.
+- Keine automatische Bildersuche, keine pauschale Hintergrundentfernung und keine mitgelieferten fremden Vereinsgrafiken. Die Funktion repariert keine bereits verlorenen Bildteile; dafür ist eine bessere Bildquelle nötig.
+
 ### API-Reparaturen im November 2026
 
 - Öffentlichen `client-token` automatisch aus der Webseite laden, pro HA-Instanz zwischenspeichern und parallele Bootstrap-Abfragen koordinieren.

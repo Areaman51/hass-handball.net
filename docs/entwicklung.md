@@ -36,7 +36,7 @@ Für die ergänzenden Karten-/Sicherheitsregressionen ist außerdem eine Node.js
 
 ```bash
 node --version
-node --test tests/test_card_security.js
+node --test tests/test_card_security.js tests/test_logo_overrides.js
 ```
 
 Die Node-Tests laufen lokal und prüfen gezielte JS-Regressionen mit simuliertem Kontext. Sie sind kein echter Browser-/Home-Assistant-Frontendtest. Python- und Node-Ergebnisse getrennt angeben; ein grüner Lauf ersetzt den jeweils anderen nicht.
@@ -61,7 +61,7 @@ Wenn Home Assistant importierbar ist, kann die Testsuite statt der Stubs echte M
 
 Die Python-Regressionssuite wurde auf dem zusammengeführten Ausgangsstand erfolgreich lokal ausgeführt. Ein echter API-Smoke für ausgewählte Datenpfade war ebenfalls erfolgreich. Zusätzliche Sicherheits-/Robustheitskorrekturen und Node-Regressionen erweitern diesen Stand; deshalb wird hier keine feste abschließende Testzahl vorgegeben. Bei Änderungen die tatsächlich ausgeführten Befehle, Python-/Node-Versionen, Datum, Commit und Ergebnisse ergänzen. Keine Testzahlen aus Erwartungen oder aus einer alten Ausgabe übernehmen.
 
-Die abschließende lokale Prüfung dieses Entwicklungsquellbaums am **10. November 2026** ergab **61 bestandene Python-Tests und 55 bestandene Node-Tests**. Auch der echte API-Smoke war erfolgreich. Befehle, Umgebung, Umfang und Grenzen sind im [Prüfstand](pruefstand.md) festgehalten. Das ist **keine vollständige Releaseabnahme** und schließt die oben genannten End-to-End-Lücken nicht.
+Die abschließende lokale Prüfung einschließlich Logo-Overrides am **11. November 2026** ergab **61 bestandene Python-Tests und 84 bestandene Node-Tests**. Hinzu kommen 32 gezielte Browserfälle mit kontrollierten Daten und sechs Browserfälle mit HA-ausgeliefertem Kartencode und tatsächlichen Entitätsdaten in einer separaten Kartenhülle. Befehle, Umfang, begrenzter Piloteinbau und offene Grenzen sind im [Prüfstand](pruefstand.md) festgehalten. Das ist **keine vollständige Releaseabnahme** und schließt die oben genannten End-to-End-Lücken nicht.
 
 ## Vollständige HA-Entwicklungsumgebung
 

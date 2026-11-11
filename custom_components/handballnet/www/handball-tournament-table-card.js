@@ -71,6 +71,15 @@ class HandballTournamentTableCard extends HTMLElement {
     if (!config.entity) {
       throw new Error("handball-tournament-table-card: 'entity' is required");
     }
+    if (config.logo_overrides != null &&
+        (typeof config.logo_overrides !== "object" || Array.isArray(config.logo_overrides))) {
+      throw new Error("logo_overrides must be a mapping of team names to image URLs");
+    }
+    this._logoOverrides = new Map(Object.entries(config.logo_overrides || {}).map(
+      ([name, url]) => [name.trim().replace(/\s+/g, " ").toLowerCase(), handballTableLogoUrl(url)]
+    ));
+    if (this._failedLogos?.size) this._lastHtml = null;
+    this._failedLogos = new Set();
     this._config = config;
     this._rendered = false;
     if (!this.shadowRoot) {
@@ -103,10 +112,35 @@ class HandballTournamentTableCard extends HTMLElement {
     this._buildRender();
     if (this._html !== null && this._html !== this._lastHtml) {
       this.shadowRoot.innerHTML = this._html;
+      this._bindLogoErrors(this.shadowRoot);
       this._lastHtml = this._html;
       this._domWrites += 1;
     }
     this._updateDebug();
+  }
+
+  _logoFor(name, apiLogo) {
+    const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const api = handballTableLogoUrl(apiLogo);
+    const replacement = this._logoOverrides.get(key);
+    return { api, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+  }
+
+  _bindLogoErrors(root) {
+    for (const img of root.querySelectorAll("img")) {
+      img.addEventListener("error", () => {
+        const failed = img.getAttribute("src");
+        if (!failed) return;
+        this._failedLogos.add(failed);
+        const api = handballTableLogoUrl(img.getAttribute("data-api-logo"));
+        if (api && api !== failed && !this._failedLogos.has(api)) {
+          img.setAttribute("src", api);
+        } else {
+          img.style.visibility = "hidden";
+          img.removeAttribute("src");
+        }
+      });
+    }
   }
 
   _buildRender() {
@@ -207,10 +241,10 @@ class HandballTournamentTableCard extends HTMLElement {
         else if (promoted) rowClass += " promoted";
         else if (relegated) rowClass += " relegated";
 
-        const logo = handballTableLogoUrl(row.team_logo);
+        const { url: logo, api } = this._logoFor(row.team_name, row.team_logo);
         const logoHtml =
           showLogo && logo
-            ? `<img src="${handballTableEsc(logo)}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
+            ? `<img src="${handballTableEsc(logo)}" data-api-logo="${handballTableEsc(api)}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
             : `<span class="team-logo-placeholder"></span>`;
 
         const rawDiff = Number(row.goal_difference);
