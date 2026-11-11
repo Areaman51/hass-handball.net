@@ -13,6 +13,19 @@
  * The DOM skeleton is built once; only the match list is replaced, and only
  * when its markup actually changed, so logos do not flicker on hass updates.
  */
+function handballScheduleLogoUrl(value) {
+  if (typeof value !== "string") return "";
+  const url = value.trim();
+  if (!url || /[\u0000-\u001f\u007f\\]/.test(value) || url.startsWith("//")) return "";
+  if (/^[a-z][a-z\d+.-]*:/i.test(url) && !/^https?:\/\//i.test(url)) return "";
+  try {
+    const parsed = new URL(url, "https://handball-card.invalid/");
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? url : "";
+  } catch {
+    return "";
+  }
+}
+
 class HandballScheduleCard extends HTMLElement {
   static getStubConfig() {
     return { entity: "sensor.handball_tournament_spielplan" };
@@ -22,6 +35,14 @@ class HandballScheduleCard extends HTMLElement {
     if (!config.entity) {
       throw new Error("handball-schedule-card: 'entity' is required");
     }
+    if (config.logo_overrides != null &&
+        (typeof config.logo_overrides !== "object" || Array.isArray(config.logo_overrides))) {
+      throw new Error("logo_overrides must be a mapping of team names to image URLs");
+    }
+    this._logoOverrides = new Map(Object.entries(config.logo_overrides || {}).map(
+      ([name, url]) => [name.trim().replace(/\s+/g, " ").toLowerCase(), handballScheduleLogoUrl(url)]
+    ));
+    this._failedLogos = new Set();
     this._config = config;
     this._index = null; // null = follow the current matchday
     this._lastListHtml = null;
@@ -61,6 +82,30 @@ class HandballScheduleCard extends HTMLElement {
 
   _norm(name) {
     return String(name || "").trim().toUpperCase();
+  }
+
+  _logoFor(name, apiLogo) {
+    const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const api = handballScheduleLogoUrl(apiLogo);
+    const replacement = this._logoOverrides.get(key);
+    return { api, replacement, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+  }
+
+  _bindLogoErrors(root) {
+    for (const img of root.querySelectorAll("img")) {
+      img.addEventListener("error", () => {
+        const failed = img.getAttribute("src");
+        if (!failed) return;
+        this._failedLogos.add(failed);
+        const api = handballScheduleLogoUrl(img.getAttribute("data-api-logo"));
+        if (api && api !== failed && !this._failedLogos.has(api)) {
+          img.setAttribute("src", api);
+        } else {
+          img.style.visibility = "hidden";
+          img.removeAttribute("src");
+        }
+      });
+    }
   }
 
   _logos() {
@@ -224,10 +269,10 @@ class HandballScheduleCard extends HTMLElement {
         highlight &&
         (this._norm(m.home) === highlight || this._norm(m.away) === highlight);
       const logo = (name) => {
-        const url = logos[this._norm(name)];
+        const { url, api, replacement } = this._logoFor(name, logos[this._norm(name)]);
         return url
-          ? `<img class="logo" src="${this._esc(url)}" alt="" width="20" height="20" decoding="sync">`
-          : "";
+          ? `<img class="logo" src="${this._esc(url)}" data-api-logo="${this._esc(api)}" alt="" width="20" height="20" decoding="sync">`
+          : (api || replacement ? '<span class="logo" style="display:inline-block" aria-hidden="true"></span>' : "");
       };
       rows.push(`
         <div class="match${hl ? " hl" : ""}" title="${this._esc(m.field || "")}">
@@ -253,6 +298,7 @@ class HandballScheduleCard extends HTMLElement {
     if (html === this._lastListHtml) return;
     this._lastListHtml = html;
     this._els.list.innerHTML = html;
+    this._bindLogoErrors(this._els.list);
   }
 
   getCardSize() {

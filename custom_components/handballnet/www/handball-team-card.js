@@ -57,6 +57,15 @@ class HandballTeamCard extends HTMLElement {
         "handball-team-card: at least one of table_position_entity, next_match_entity, or live_ticker_entity is required"
       );
     }
+    if (config.logo_overrides != null &&
+        (typeof config.logo_overrides !== "object" || Array.isArray(config.logo_overrides))) {
+      throw new Error("logo_overrides must be a mapping of team names to image URLs");
+    }
+    this._logoOverrides = new Map(Object.entries(config.logo_overrides || {}).map(
+      ([name, url]) => [name.trim().replace(/\s+/g, " ").toLowerCase(), handballTeamLogoUrl(url)]
+    ));
+    if (this._failedLogos?.size) this._lastHtml = null;
+    this._failedLogos = new Set();
     this._config = config;
     this._rendered = false;
     if (!this.shadowRoot) {
@@ -91,11 +100,35 @@ class HandballTeamCard extends HTMLElement {
     return entityId ? this._hass.states[entityId] ?? null : null;
   }
 
+  _logoFor(name, apiLogo) {
+    const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const api = handballTeamLogoUrl(apiLogo);
+    const replacement = this._logoOverrides.get(key);
+    return { api, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+  }
+
+  _bindLogoErrors(root) {
+    for (const img of root.querySelectorAll("img")) {
+      img.addEventListener("error", () => {
+        const failed = img.getAttribute("src");
+        if (!failed) return;
+        this._failedLogos.add(failed);
+        const api = handballTeamLogoUrl(img.getAttribute("data-api-logo"));
+        if (api && api !== failed && !this._failedLogos.has(api)) {
+          img.setAttribute("src", api);
+        } else {
+          img.style.visibility = "hidden";
+          img.removeAttribute("src");
+        }
+      });
+    }
+  }
+
   _teamLogoHtml(team, cssClass) {
     if (!team) return "";
-    const logo = handballTeamLogoUrl(team.logo);
-    return logo
-      ? `<img src="${handballTeamEsc(logo)}" alt="${handballTeamEsc(team.name || "")}" class="${handballTeamEsc(cssClass)}" decoding="sync">`
+    const { url, api } = this._logoFor(team.name, team.logo);
+    return url
+      ? `<img src="${handballTeamEsc(url)}" data-api-logo="${handballTeamEsc(api)}" alt="${handballTeamEsc(team.name || "")}" class="${handballTeamEsc(cssClass)}" decoding="sync">`
       : `<span class="${handballTeamEsc(cssClass)} placeholder"></span>`;
   }
 
@@ -226,6 +259,7 @@ class HandballTeamCard extends HTMLElement {
     this._buildRender();
     if (this._html !== null && this._html !== this._lastHtml) {
       this.shadowRoot.innerHTML = this._html;
+      this._bindLogoErrors(this.shadowRoot);
       this._lastHtml = this._html;
     }
   }
