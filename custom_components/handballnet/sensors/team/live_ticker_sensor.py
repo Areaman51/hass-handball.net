@@ -3,6 +3,8 @@ from .base_sensor import HandballBaseSensor
 
 
 class HandballLiveTickerSensor(HandballBaseSensor):
+    _supports_central_logos = True
+
     def __init__(self, coordinator, entry, team_id, team_name):
         super().__init__(coordinator, entry, team_id, team_name)
         self._team_id = team_id
@@ -21,9 +23,10 @@ class HandballLiveTickerSensor(HandballBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         live_matches = self._get_team_bucket().get("live_matches", [])
         if not live_matches:
-            return {}
+            return self.central_logo_attributes
 
         return {
+            **self.central_logo_attributes,
             "live_matches": live_matches,
             "total_live_matches": len(live_matches),
         }

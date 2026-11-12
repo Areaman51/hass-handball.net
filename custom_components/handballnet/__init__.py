@@ -67,7 +67,11 @@ async def async_setup(hass: HomeAssistant, config: dict):
         StaticPathConfig = None
 
     www_dir = os.path.join(os.path.dirname(__file__), "www")
-    static_files = []
+    # Frontend may have started before config/www existed. Publish just our
+    # managed upload directory independently; never register all of /local.
+    logo_dir = hass.config.path("www", DOMAIN, "logos")
+    await hass.async_add_executor_job(os.makedirs, logo_dir, 0o755, True)
+    static_files = [(f"/local/{DOMAIN}/logos", logo_dir)]
     for filename in _LOVELACE_CARDS:
         url_path = f"/{DOMAIN}/{filename}"
         file_path = os.path.join(www_dir, filename)
@@ -98,6 +102,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     from .coordinator import HandballDataUpdateCoordinator
 
     hass.data.setdefault(DOMAIN, {})
+    from .logo_manager import LogoStorageError, async_get_logo_manager
+
+    try:
+        await async_get_logo_manager(hass)
+    except LogoStorageError:
+        # Logo customisation is optional: preserve sports data while the
+        # damaged registry remains unavailable and is not overwritten.
+        import logging
+
+        logging.getLogger(__name__).exception("Central logo registry unavailable; using API logos")
     
     entity_type = entry.data.get(CONF_ENTITY_TYPE, ENTITY_TYPE_TEAM)
     

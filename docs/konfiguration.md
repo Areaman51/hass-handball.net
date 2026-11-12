@@ -47,9 +47,11 @@ Intern werden `entity_type: tournament`, `tournament_id` und `tournament_name` g
 
 ## Optionen
 
-`options_flow.py` bietet genau zwei Werte: `update_interval` und `update_interval_live`. Gespeicherte Optionen gehen beim nächsten Erstellen des Coordinators den ursprünglichen Einrichtungswerten vor.
+Der native Optionsdialog trennt **Abfrageintervalle** und **Logos verwalten**. Die Intervalle `update_interval` und `update_interval_live` verlangen positive ganze Sekundenwerte. Gespeicherte Optionen gehen beim nächsten Erstellen des Coordinators den ursprünglichen Einrichtungswerten vor; andere vorhandene Optionen bleiben beim Bearbeiten erhalten.
 
-Der Code registriert derzeit keinen eigenen Options-Update-Listener zum automatischen Neuaufbau des Coordinators. Nach Änderungen den Eintrag daher bei Bedarf über Home Assistant neu laden oder Home Assistant neu starten. Der Dienst `handballnet.reload_config` ist zwar deklariert, hat aber aktuell eine Signatur-Inkonsistenz; siehe [Fehlersuche](fehlersuche.md#aktionen).
+Die zentrale Logo-Verwaltung gilt für bekannte oder manuell benannte Mannschaften über alle Handball.net-Einträge hinweg. Sie unterstützt Bildadresse, geprüften Upload und bestätigtes Entfernen der zentralen Ausnahme. Dabei werden keine Abfrageintervalle geändert und keine externen Daten neu geladen. Siehe [Vereinslogos verwalten](vereinslogos.md).
+
+Der Code registriert derzeit keinen eigenen Options-Update-Listener zum automatischen Neuaufbau des Coordinators. Nach **Intervalländerungen** den Eintrag daher bei Bedarf über Home Assistant neu laden. Das ist nicht nötig für Logoänderungen: Die relevanten Sensoren abonnieren deren gemeinsamen Manager und aktualisieren ihre Logoattribute unmittelbar. Der Dienst `handballnet.reload_config` ist zwar deklariert, hat aber aktuell eine Signatur-Inkonsistenz; siehe [Fehlersuche](fehlersuche.md#aktionen).
 
 ## Neukonfiguration
 

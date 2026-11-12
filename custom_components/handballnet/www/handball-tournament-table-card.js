@@ -80,6 +80,10 @@ class HandballTournamentTableCard extends HTMLElement {
     ));
     if (this._failedLogos?.size) this._lastHtml = null;
     this._failedLogos = new Set();
+    this._logoCandidates = new Map();
+    this._centralLogos = new Map();
+    this._centralRevisionKey = null;
+    this._centralRevisions = [];
     this._config = config;
     this._rendered = false;
     if (!this.shadowRoot) {
@@ -89,12 +93,13 @@ class HandballTournamentTableCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const centralChanged = this._readCentralLogos([hass.states[this._config.entity]]);
     // hass is pushed on every state change in the whole instance. Re-rendering
     // innerHTML each time recreates all <img> tags and makes the logos flicker,
     // so only render when the watched entity actually changed.
     this._hassUpdates += 1;
     const stateObj = hass.states[this._config?.entity];
-    if (this._rendered && stateObj === this._lastStateObj) {
+    if (!centralChanged && this._rendered && stateObj === this._lastStateObj) {
       this._updateDebug();
       return;
     }
@@ -119,11 +124,46 @@ class HandballTournamentTableCard extends HTMLElement {
     this._updateDebug();
   }
 
+  _readCentralLogos(states) {
+    const next = new Map();
+    const revisions = states.map((state, index) => {
+      const attrs = state?.attributes;
+      const map = attrs?.handballnet_logo_overrides;
+      if (!map || typeof map !== "object" || Array.isArray(map)) return this._centralRevisions[index] ?? null;
+      for (const [name, value] of Object.entries(map)) {
+        const key = name.trim().replace(/\s+/g, " ").toLowerCase();
+        const url = handballTableLogoUrl(value);
+        if (key && url && !next.has(key)) next.set(key, url);
+      }
+      return Number.isInteger(attrs.handballnet_logo_revision)
+        ? attrs.handballnet_logo_revision : this._centralRevisions[index] ?? null;
+    });
+    const revisionKey = JSON.stringify(revisions);
+    const revisionChanged = this._centralRevisionKey !== revisionKey;
+    let changed = revisionChanged;
+    // Release only candidates belonging to edited names; unrelated failures survive.
+    for (const key of new Set([...this._centralLogos.keys(), ...next.keys()])) {
+      if (!revisionChanged && this._centralLogos.get(key) === next.get(key)) continue;
+      changed = true;
+      for (const url of this._logoCandidates.get(key) || []) {
+        if (this._failedLogos.delete(url)) this._lastHtml = null;
+      }
+    }
+    this._centralLogos = next;
+    this._centralRevisionKey = revisionKey;
+    this._centralRevisions = revisions;
+    return changed;
+  }
+
   _logoFor(name, apiLogo) {
     const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
     const api = handballTableLogoUrl(apiLogo);
     const replacement = this._logoOverrides.get(key);
-    return { api, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+    const central = this._centralLogos.get(key);
+    const candidates = this._logoCandidates.get(key) || new Set();
+    for (const url of [replacement, central, api]) if (url) candidates.add(url);
+    this._logoCandidates.set(key, candidates);
+    return { central, api, url: [replacement, central, api].find(url => url && !this._failedLogos.has(url)) || "" };
   }
 
   _bindLogoErrors(root) {
@@ -132,9 +172,11 @@ class HandballTournamentTableCard extends HTMLElement {
         const failed = img.getAttribute("src");
         if (!failed) return;
         this._failedLogos.add(failed);
+        const central = handballTableLogoUrl(img.getAttribute("data-central-logo"));
         const api = handballTableLogoUrl(img.getAttribute("data-api-logo"));
-        if (api && api !== failed && !this._failedLogos.has(api)) {
-          img.setAttribute("src", api);
+        const next = [central, api].find(url => url && !this._failedLogos.has(url));
+        if (next) {
+          img.setAttribute("src", next);
         } else {
           img.style.visibility = "hidden";
           img.removeAttribute("src");
@@ -241,10 +283,10 @@ class HandballTournamentTableCard extends HTMLElement {
         else if (promoted) rowClass += " promoted";
         else if (relegated) rowClass += " relegated";
 
-        const { url: logo, api } = this._logoFor(row.team_name, row.team_logo);
+        const { url: logo, api, central } = this._logoFor(row.team_name, row.team_logo);
         const logoHtml =
           showLogo && logo
-            ? `<img src="${handballTableEsc(logo)}" data-api-logo="${handballTableEsc(api)}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
+            ? `<img src="${handballTableEsc(logo)}" data-api-logo="${handballTableEsc(api)}" data-central-logo="${handballTableEsc(central)}" alt="" class="team-logo" width="20" height="20" decoding="sync">`
             : `<span class="team-logo-placeholder"></span>`;
 
         const rawDiff = Number(row.goal_difference);

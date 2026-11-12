@@ -40,23 +40,21 @@ Ein Source-Archiv des Repositories ist nicht dasselbe wie das frühere Integrati
 6. Home Assistant starten. **Nicht erneut hinzufügen**, wenn die vorhandenen Einträge schon da sind.
 7. Die Nachkontrolle unten durchführen. Einen von HACS verwalteten Installationsstand nicht irrtümlich als dauerhaft unabhängig von HACS betrachten; ein späteres HACS-Update kann ihn wieder ersetzen.
 
-## HACS-Route: ausdrücklich ungetesteter Wechsel
+## Marketplace-/HACS-Route: Quellenwechsel weiterhin ungetestet
 
-Für eine neue benutzerdefinierte Quelle lautet die Repository-Adresse:
+Ab Home Assistant 2026.11 ist der Marketplace eingebaut. Der Fork kann dort als benutzerdefiniertes Repository über den [My-Link in der Hauptanleitung](../README.md#marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet) angeboten werden. Dafür ist eine GitHub-Verbindung erforderlich; eine benutzerdefinierte Quelle ist nicht dasselbe wie eine Aufnahme in den gemeinsamen Katalog.
 
-`https://github.com/Areaman51/hass-handball.net`
+Repository-Adresse: `https://github.com/Areaman51/hass-handball.net`, Kategorie **Integration**. Ohne vollständiges GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches; der vorliegende Stand ist daher ausdrücklich eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. Die tatsächliche Marketplace-Neuinstallation beziehungsweise Migration ist bislang nicht praktisch abgenommen; die manuelle Source-Route bleibt getrennt beschrieben.
 
-Kategorie: **Integration**. Der Source-Stand verwendet `zip_release: false`. Branch `main` **nur auswählen, wenn die installierte HACS-Version dies anbietet und das Repository akzeptiert**. Eine universelle Menüfolge oder erfolgreiche Installation ohne Fork-Release wird hier nicht zugesagt. Wenn HACS nur Releases anbietet oder die Quelle ablehnt, den Source-Installationsweg nutzen.
-
-Bei einem bereits in HACS geführten Original kann es zu Domain-/Repository-Konflikten kommen. Deshalb:
+Bei einem bereits über Marketplace/HACS verwalteten Original kann der bestehende Besitzer derselben Domain `handballnet` eine zweite Quelle blockieren. Deshalb:
 
 - Nicht beide Quellen parallel installieren.
-- HACS-Verwaltung und Home-Assistant-Konfigurationseinträge auseinanderhalten. Eine Aufforderung zur Entfernung ist kein Beleg dafür, dass nur die Repository-Zuordnung betroffen ist; vor dem Bestätigen genau prüfen.
+- Die Repository-Verwaltung und die Home-Assistant-Konfigurationseinträge auseinanderhalten. Vor jeder angebotenen Entfernung genau prüfen, was betroffen wäre.
 - Keine Löschaktion an der HA-Integration ausführen, um den Fork auswählbar zu machen.
-- Nur fortfahren, wenn die HACS-Version einen verständlichen Quellenwechsel zulässt, ohne HA-Einträge zu löschen, und der Rückweg gesichert ist.
-- Bei unklarer Wirkung abbrechen und manuell bei gestopptem HA installieren. Anschließend die Verwaltungsquelle bewusst klären, damit kein Update den Stand überschreibt.
+- Nur fortfahren, wenn ein verständlicher Quellenwechsel ohne Löschen der HA-Einträge möglich und der Rückweg gesichert ist.
+- Bei unklarer Wirkung abbrechen. Eine manuelle Source-Installation ersetzt nicht die bewusste Klärung der Verwaltungsquelle; spätere Updates dürfen den Stand nicht ungeplant überschreiben.
 
-Diese Hinweise beschreiben Vorsichtsmaßnahmen, **keinen erfolgreich erprobten HACS-Umstieg**.
+Diese Hinweise beschreiben Vorsichtsmaßnahmen, **keinen erfolgreich erprobten Marketplace-/HACS-Umstieg**. Ein gezielt geprüfter Backend-/Kartenpilot mit bestehenden Einträgen ist im [Prüfstand](pruefstand.md) davon abgegrenzt.
 
 ## Nachkontrolle
 

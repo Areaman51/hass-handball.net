@@ -66,6 +66,8 @@ def _group_matchdays(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
 class HandballTournamentScheduleSensor(HandballBaseSensor):
     """State = number of remaining matches; attributes = schedule by matchday."""
 
+    _supports_central_logos = True
+
     # The schedule is large; keep it out of the recorder database.
     _unrecorded_attributes = frozenset(
         {"upcoming_matches", "recent_results", "matchdays"}
@@ -114,6 +116,7 @@ class HandballTournamentScheduleSensor(HandballBaseSensor):
             max(len(matchdays) - 1, 0),
         )
         return {
+            **self.central_logo_attributes,
             "total_matches": len(upcoming) + len(played),
             "played_matches": len(played),
             "remaining_matches": len(upcoming),

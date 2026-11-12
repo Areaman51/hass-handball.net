@@ -15,6 +15,31 @@ class HandballBaseSensor(CoordinatorEntity):
         if category:
             self._attr_entity_category = category
 
+    async def async_added_to_hass(self):
+        """Publish explicit logo changes without polling the external API."""
+        await super().async_added_to_hass()
+        if not getattr(self, "_supports_central_logos", False):
+            return
+        from ..logo_manager import get_logo_manager
+
+        manager = get_logo_manager(self.coordinator.hass)
+        if manager is not None:
+            self.async_on_remove(manager.async_listen(self.async_write_ha_state))
+        else:
+            from ..logo_manager import async_listen_logo_changes
+
+            self.async_on_remove(async_listen_logo_changes(self.coordinator.hass, self.async_write_ha_state))
+
+    @property
+    def central_logo_attributes(self):
+        """Expose a copy of the shared registry without changing API data."""
+        from ..logo_manager import get_logo_manager
+
+        manager = get_logo_manager(self.coordinator.hass)
+        if manager is None:
+            return {"handballnet_logo_overrides": {}, "handballnet_logo_revision": 0}
+        return manager.as_attributes()
+
     def _create_device_info(self, identifiers, name, model, via_device=None):
         """Create device info dictionary"""
         device_info = {

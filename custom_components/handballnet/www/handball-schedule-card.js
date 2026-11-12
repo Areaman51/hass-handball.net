@@ -43,6 +43,10 @@ class HandballScheduleCard extends HTMLElement {
       ([name, url]) => [name.trim().replace(/\s+/g, " ").toLowerCase(), handballScheduleLogoUrl(url)]
     ));
     this._failedLogos = new Set();
+    this._logoCandidates = new Map();
+    this._centralLogos = new Map();
+    this._centralRevisionKey = null;
+    this._centralRevisions = [];
     this._config = config;
     this._index = null; // null = follow the current matchday
     this._lastListHtml = null;
@@ -55,12 +59,13 @@ class HandballScheduleCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const centralChanged = this._readCentralLogos([hass.states[this._config.entity], this._config.table_entity ? hass.states[this._config.table_entity] : null]);
     const watched = [
       hass.states[this._config.entity],
       this._config.table_entity ? hass.states[this._config.table_entity] : null,
     ];
     if (
-      this._built &&
+      !centralChanged && this._built &&
       this._lastStates &&
       watched.every((st, i) => st === this._lastStates[i])
     ) {
@@ -81,14 +86,49 @@ class HandballScheduleCard extends HTMLElement {
   }
 
   _norm(name) {
-    return String(name || "").trim().toUpperCase();
+    return String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  _readCentralLogos(states) {
+    const next = new Map();
+    const revisions = states.map((state, index) => {
+      const attrs = state?.attributes;
+      const map = attrs?.handballnet_logo_overrides;
+      if (!map || typeof map !== "object" || Array.isArray(map)) return this._centralRevisions[index] ?? null;
+      for (const [name, value] of Object.entries(map)) {
+        const key = name.trim().replace(/\s+/g, " ").toLowerCase();
+        const url = handballScheduleLogoUrl(value);
+        if (key && url && !next.has(key)) next.set(key, url);
+      }
+      return Number.isInteger(attrs.handballnet_logo_revision)
+        ? attrs.handballnet_logo_revision : this._centralRevisions[index] ?? null;
+    });
+    const revisionKey = JSON.stringify(revisions);
+    const revisionChanged = this._centralRevisionKey !== revisionKey;
+    let changed = revisionChanged;
+    // Release only candidates belonging to edited names; unrelated failures survive.
+    for (const key of new Set([...this._centralLogos.keys(), ...next.keys()])) {
+      if (!revisionChanged && this._centralLogos.get(key) === next.get(key)) continue;
+      changed = true;
+      for (const url of this._logoCandidates.get(key) || []) {
+        if (this._failedLogos.delete(url)) this._lastListHtml = null;
+      }
+    }
+    this._centralLogos = next;
+    this._centralRevisionKey = revisionKey;
+    this._centralRevisions = revisions;
+    return changed;
   }
 
   _logoFor(name, apiLogo) {
     const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
     const api = handballScheduleLogoUrl(apiLogo);
     const replacement = this._logoOverrides.get(key);
-    return { api, replacement, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+    const central = this._centralLogos.get(key);
+    const candidates = this._logoCandidates.get(key) || new Set();
+    for (const url of [replacement, central, api]) if (url) candidates.add(url);
+    this._logoCandidates.set(key, candidates);
+    return { central, api, replacement, url: [replacement, central, api].find(url => url && !this._failedLogos.has(url)) || "" };
   }
 
   _bindLogoErrors(root) {
@@ -97,9 +137,11 @@ class HandballScheduleCard extends HTMLElement {
         const failed = img.getAttribute("src");
         if (!failed) return;
         this._failedLogos.add(failed);
+        const central = handballScheduleLogoUrl(img.getAttribute("data-central-logo"));
         const api = handballScheduleLogoUrl(img.getAttribute("data-api-logo"));
-        if (api && api !== failed && !this._failedLogos.has(api)) {
-          img.setAttribute("src", api);
+        const next = [central, api].find(url => url && !this._failedLogos.has(url));
+        if (next) {
+          img.setAttribute("src", next);
         } else {
           img.style.visibility = "hidden";
           img.removeAttribute("src");
@@ -269,10 +311,10 @@ class HandballScheduleCard extends HTMLElement {
         highlight &&
         (this._norm(m.home) === highlight || this._norm(m.away) === highlight);
       const logo = (name) => {
-        const { url, api, replacement } = this._logoFor(name, logos[this._norm(name)]);
+        const { url, api, central, replacement } = this._logoFor(name, logos[this._norm(name)]);
         return url
-          ? `<img class="logo" src="${this._esc(url)}" data-api-logo="${this._esc(api)}" alt="" width="20" height="20" decoding="sync">`
-          : (api || replacement ? '<span class="logo" style="display:inline-block" aria-hidden="true"></span>' : "");
+          ? `<img class="logo" src="${this._esc(url)}" data-api-logo="${this._esc(api)}" data-central-logo="${this._esc(central)}" alt="" width="20" height="20" decoding="sync">`
+          : (api || central || replacement ? '<span class="logo" style="display:inline-block" aria-hidden="true"></span>' : "");
       };
       rows.push(`
         <div class="match${hl ? " hl" : ""}" title="${this._esc(m.field || "")}">

@@ -66,6 +66,10 @@ class HandballTeamCard extends HTMLElement {
     ));
     if (this._failedLogos?.size) this._lastHtml = null;
     this._failedLogos = new Set();
+    this._logoCandidates = new Map();
+    this._centralLogos = new Map();
+    this._centralRevisionKey = null;
+    this._centralRevisions = [];
     this._config = config;
     this._rendered = false;
     if (!this.shadowRoot) {
@@ -75,6 +79,7 @@ class HandballTeamCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const centralChanged = this._readCentralLogos([this._state(this._config.next_match_entity), this._state(this._config.live_ticker_entity), this._state(this._config.table_position_entity)]);
     // Only re-render when one of the configured entities changed; a full
     // innerHTML rebuild on every hass update makes images flicker.
     const watched = [
@@ -83,7 +88,7 @@ class HandballTeamCard extends HTMLElement {
       this._config?.live_ticker_entity,
     ].map((id) => (id ? hass.states[id] : undefined));
     if (
-      this._rendered &&
+      !centralChanged && this._rendered &&
       this._lastStates &&
       watched.every((st, i) => st === this._lastStates[i])
     ) {
@@ -100,11 +105,46 @@ class HandballTeamCard extends HTMLElement {
     return entityId ? this._hass.states[entityId] ?? null : null;
   }
 
+  _readCentralLogos(states) {
+    const next = new Map();
+    const revisions = states.map((state, index) => {
+      const attrs = state?.attributes;
+      const map = attrs?.handballnet_logo_overrides;
+      if (!map || typeof map !== "object" || Array.isArray(map)) return this._centralRevisions[index] ?? null;
+      for (const [name, value] of Object.entries(map)) {
+        const key = name.trim().replace(/\s+/g, " ").toLowerCase();
+        const url = handballTeamLogoUrl(value);
+        if (key && url && !next.has(key)) next.set(key, url);
+      }
+      return Number.isInteger(attrs.handballnet_logo_revision)
+        ? attrs.handballnet_logo_revision : this._centralRevisions[index] ?? null;
+    });
+    const revisionKey = JSON.stringify(revisions);
+    const revisionChanged = this._centralRevisionKey !== revisionKey;
+    let changed = revisionChanged;
+    // Release only candidates belonging to edited names; unrelated failures survive.
+    for (const key of new Set([...this._centralLogos.keys(), ...next.keys()])) {
+      if (!revisionChanged && this._centralLogos.get(key) === next.get(key)) continue;
+      changed = true;
+      for (const url of this._logoCandidates.get(key) || []) {
+        if (this._failedLogos.delete(url)) this._lastHtml = null;
+      }
+    }
+    this._centralLogos = next;
+    this._centralRevisionKey = revisionKey;
+    this._centralRevisions = revisions;
+    return changed;
+  }
+
   _logoFor(name, apiLogo) {
     const key = String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
     const api = handballTeamLogoUrl(apiLogo);
     const replacement = this._logoOverrides.get(key);
-    return { api, url: [replacement, api].find(url => url && !this._failedLogos.has(url)) || "" };
+    const central = this._centralLogos.get(key);
+    const candidates = this._logoCandidates.get(key) || new Set();
+    for (const url of [replacement, central, api]) if (url) candidates.add(url);
+    this._logoCandidates.set(key, candidates);
+    return { central, api, url: [replacement, central, api].find(url => url && !this._failedLogos.has(url)) || "" };
   }
 
   _bindLogoErrors(root) {
@@ -113,9 +153,11 @@ class HandballTeamCard extends HTMLElement {
         const failed = img.getAttribute("src");
         if (!failed) return;
         this._failedLogos.add(failed);
+        const central = handballTeamLogoUrl(img.getAttribute("data-central-logo"));
         const api = handballTeamLogoUrl(img.getAttribute("data-api-logo"));
-        if (api && api !== failed && !this._failedLogos.has(api)) {
-          img.setAttribute("src", api);
+        const next = [central, api].find(url => url && !this._failedLogos.has(url));
+        if (next) {
+          img.setAttribute("src", next);
         } else {
           img.style.visibility = "hidden";
           img.removeAttribute("src");
@@ -126,9 +168,9 @@ class HandballTeamCard extends HTMLElement {
 
   _teamLogoHtml(team, cssClass) {
     if (!team) return "";
-    const { url, api } = this._logoFor(team.name, team.logo);
+    const { url, api, central } = this._logoFor(team.name, team.logo);
     return url
-      ? `<img src="${handballTeamEsc(url)}" data-api-logo="${handballTeamEsc(api)}" alt="${handballTeamEsc(team.name || "")}" class="${handballTeamEsc(cssClass)}" decoding="sync">`
+      ? `<img src="${handballTeamEsc(url)}" data-api-logo="${handballTeamEsc(api)}" data-central-logo="${handballTeamEsc(central)}" alt="${handballTeamEsc(team.name || "")}" class="${handballTeamEsc(cssClass)}" decoding="sync">`
       : `<span class="${handballTeamEsc(cssClass)} placeholder"></span>`;
   }
 
@@ -496,14 +538,14 @@ class HandballTeamCard extends HTMLElement {
           min-width: 0;
         }
         .match-logo {
-          width: 36px;
-          height: 36px;
+          width: 64px;
+          height: 64px;
           object-fit: contain;
         }
         .match-logo.placeholder {
           display: inline-block;
-          width: 36px;
-          height: 36px;
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
           background: var(--divider-color, rgba(0,0,0,0.1));
         }

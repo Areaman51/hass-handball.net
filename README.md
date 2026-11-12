@@ -33,7 +33,7 @@ Dieser Fork führt Verbesserungen aus der PR-88-Historie, zusätzliche Reparatur
 - Pro Team Spiel-, Statistik-, Tabellen-, Gesundheits- und Live-Sensoren sowie einen Spielplankalender bereitstellen.
 - Turniertabelle, Spielplan nach Spieltagen und Kalender anzeigen; bei fehlender Tabelle einen Hilfssensor für verbleibende Teams anlegen.
 - Mitgelieferte Karten: `handball-team-card`, `handball-tournament-table-card`, `handball-schedule-card`.
-- Optional eigene Vereinsbilder über `logo_overrides` statt fehlerhafter API-Vorschaubilder verwenden; [Konfiguration und Grenzen](docs/dashboard-karten.md#eigene-vereinslogos-logo_overrides).
+- Eigene Vereinsbilder zentral über **Optionen → Logos verwalten** auswählen, hochladen oder per Bildadresse hinterlegen; [Anleitung und Datenschutz](docs/vereinslogos.md). Individuelle `logo_overrides` je Karte bleiben als Ausnahme erhalten.
 - API-Fehler protokollieren und Diagnosedaten zum Prüfen bereitstellen.
 
 Die Daten kommen von einem externen Dienst. Vollständigkeit, Verfügbarkeit und Live-Aktualität sind nicht garantiert. „Live“ wird überwiegend aus einem **Zweistundenfenster ab angesetztem Spielbeginn** abgeleitet, nicht aus einem bestätigten Spielstatus. API-Caches begrenzen die tatsächliche Aktualität. Pokale ohne Tabelle sind eingeschränkt, weil ein Teilnehmer-Fallback noch die alte API verwendet. Weitere Einschränkungen stehen in der [Entitätenreferenz](docs/entitaeten.md) und der [Kartenanleitung](docs/dashboard-karten.md).
@@ -53,17 +53,20 @@ Voraussetzungen: eine gesicherte Home-Assistant-Installation, ausgehender HTTPS-
 
 Ein Fork-Release-Asset wird hierfür nicht benötigt. Die Entwicklungsversion ist kein bereits abgenommenes Release-ZIP.
 
-### HACS als benutzerdefiniertes Repository – bedingt und ungetestet
+### Marketplace als benutzerdefiniertes Repository – Migration noch ungetestet
 
-Das Repository ist **nicht als Bestandteil des HACS-Standardkatalogs zugesagt**. Wenn deine HACS-Version benutzerdefinierte Integrations-Repositories unterstützt, verwende:
+Seit Home Assistant 2026.11 gehört der Marketplace zu Home Assistant; er verwendet denselben Katalog und dieselbe `hacs.json` wie HACS. Der Fork ist **noch nicht im gemeinsamen Standardkatalog gelistet**. Als benutzerdefinierte Quelle kann er über den offiziellen My-Link angeboten werden:
+
+[![Repository im Marketplace öffnen](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Areaman51&repository=hass-handball.net&category=integration)
 
 - Repository: `https://github.com/Areaman51/hass-handball.net`
 - Kategorie: **Integration**
-- Branch/Version: **`main` nur dann auswählen, wenn deine HACS-Version dies tatsächlich anbietet**.
+- Eine GitHub-Verbindung ist für benutzerdefinierte Quellen erforderlich. Die Oberfläche bietet gegebenenfalls zunächst das Hinzufügen der Quelle an.
+- Ohne veröffentlichtes GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches. Das ist hier weiterhin ein **Entwicklungsstand**, kein stabiles Release. `zip_release: false` setzt kein Release-Asset voraus.
 
-Der Fork verwendet für diesen Entwicklungsstand `zip_release: false`; es wird kein vorhandenes Release-Asset vorausgesetzt. Das garantiert jedoch nicht, dass jede HACS-Version ein Repository ohne Fork-Release aus `main` installieren kann. Fehlt die Auswahl, **nicht ein anderes Release als Ersatz auswählen**, sondern manuell aus Source installieren.
+Dies beschreibt den [offiziellen Bezugsweg](https://contributors.home-assistant.io/marketplace/guides/catalog/), **keine bereits praktisch abgenommene Marketplace-Neuinstallation oder Quellenmigration**. Der gezielte Backend-/Karteneinbau in einer Pilotinstallation ist davon getrennt; siehe [Prüfstand](docs/pruefstand.md). Eine Aufnahme in den gemeinsamen Katalog erfordert unter anderem erfolgreiche Validierungen, ein vollständiges Release und eine gesonderte Katalogprüfung.
 
-Der Wechsel eines bereits verwalteten Original-Repositories zum Fork ist noch nicht real getestet. **Nicht die Integration in Home Assistant löschen und nicht Original und Fork parallel installieren.** Details und Rückweg: [Installation und Umstieg](docs/installation-und-umstieg.md).
+Der Wechsel eines bereits über Marketplace/HACS verwalteten Original-Repositories zum Fork ist noch nicht real getestet. **Nicht die Integration in Home Assistant löschen und nicht Original und Fork parallel installieren.** Beide nutzen dieselbe Domain `handballnet`; ein anderer Besitzer derselben Domain kann die Installation blockieren. Details und Rückweg: [Installation und Umstieg](docs/installation-und-umstieg.md).
 
 ## Neueinrichtung
 
@@ -98,7 +101,8 @@ Intern bezeichnet `tournament_id` hier die **Phase/Staffel**, nicht die übergeo
 
 ## Optionen und Saisonwechsel
 
-- **Optionen/Konfigurieren:** `update_interval` und `update_interval_live` ändern. Die Optionen enthalten keine Saison-, Team- oder Token-Einstellungen. Weil der Coordinator seine Intervalle bei der Erstellung einliest, den Eintrag anschließend neu laden, falls die Änderung nicht wirksam wird.
+- **Optionen/Konfigurieren → Abfrageintervalle:** `update_interval` und `update_interval_live` als positive ganze Sekundenwerte ändern. Andere gespeicherte Optionen bleiben erhalten. Weil der Coordinator seine Intervalle bei der Erstellung einliest, den Eintrag anschließend neu laden, falls die Änderung nicht wirksam wird.
+- **Optionen/Konfigurieren → Logos verwalten:** zentrale Mannschaftszuordnung für alle drei Karten und alle Einträge. Bildadresse setzen, geprüfte PNG-/JPEG-/WebP-Datei hochladen oder nach Bestätigung aufs API-Original zurücksetzen. Logoänderungen erhalten die Abfrageintervalle und lösen keinen API-Refresh oder Neustart aus; [Anleitung](docs/vereinslogos.md).
 - **Neu konfigurieren:** Für Einzelteam- und Vereinseinträge implementiert. Eine Team-ID lässt sich manuell neu prüfen; eine Vereinssuche mit Teamauswahl speichert einen Vereinseintrag. Beim vorhandenen Verein wird nach Möglichkeit direkt die aktuelle Mannschaftsliste angeboten.
 - Es gibt **keinen automatischen garantierten Saisonwechsel**, keinen Saisonwähler und keine implementierte Turnier-Neukonfiguration. Eine neue Staffel bei Bedarf als zusätzlichen Turniereintrag einrichten, Verweise prüfen und den alten Eintrag zunächst erhalten.
 - Änderungen an Teamnamen, Auswahl oder Eintragsart können Entitäts-/Gerätezuordnungen beeinflussen. Vor Saisonänderungen sichern und Dashboard-/Automationsverweise anschließend kontrollieren; dauerhafte ID-Stabilität wird nicht zugesagt.
@@ -152,7 +156,7 @@ highlight_team: SG Beispielstadt
 
 ### Vereinslogos austauschen
 
-Bereits beschnittene oder mit einem unerwünschten Hintergrund gelieferte API-Logos lassen sich in **allen drei Karten** durch eine eigene vorhandene Bildquelle ersetzen. Die [Schritt-für-Schritt-Anleitung](docs/dashboard-karten.md#schritt-für-schritt-ein-logo-austauschen) erklärt lokale Dateien unter `www/vereinslogos`, externe Bildadressen, die Zuordnung per `logo_overrides`, Bildwechsel trotz Browsercache und die Rückkehr zum API-Logo. Der Block wird derzeit je Karte gepflegt; eine zentrale Logo-Verwaltung im Optionen-Dialog der Integration ist **noch nicht enthalten**.
+Bereits beschnittene oder mit einem unerwünschten Hintergrund gelieferte API-Logos lassen sich in **allen drei Karten** durch eine eigene vorhandene Bildquelle ersetzen. Empfohlen ist die [zentrale Logo-Verwaltung in der Integration](docs/vereinslogos.md): einmal einstellen, in Teamkarte, Tabelle und Spielplan verwenden. Bestehende individuelle Ausnahmen unter `logo_overrides` bleiben vorrangig erhalten; die [Kartenanleitung](docs/dashboard-karten.md#schritt-für-schritt-ein-logo-austauschen) erklärt diesen manuellen Weg einschließlich lokaler Dateien, Browsercache und Rückkehr zum API-Logo.
 
 ## Aktualisierung und Fehlersuche
 

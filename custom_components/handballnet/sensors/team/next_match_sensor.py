@@ -7,6 +7,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HandballNextMatchSensor(HandballBaseSensor):
+    _supports_central_logos = True
+
     def __init__(self, coordinator, entry, team_id, team_name, api=None):
         super().__init__(coordinator, entry, team_id, team_name)
         self.utils = HandballNetUtils()
@@ -29,9 +31,10 @@ class HandballNextMatchSensor(HandballBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         next_match = self._get_team_bucket().get("next_match")
         if not next_match:
-            return {}
+            return self.central_logo_attributes
 
         return {
+            **self.central_logo_attributes,
             "match_date": next_match.get("starts_at_formatted"),
             "match_time": next_match.get("starts_at_local"),
             "home_team": next_match.get("home_team"),
