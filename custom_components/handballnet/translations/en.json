@@ -122,12 +122,73 @@
     "step": {
       "init": {
         "title": "Options for Handball Entity",
-        "description": "Adjust the update intervals",
+        "description": "Choose polling intervals or central logo management. Logos apply to all Handball.net entries; logo changes do not trigger API requests or reloads.",
+        "menu_options": {
+          "intervals": "Polling intervals",
+          "logos": "Manage logos"
+        }
+      },
+      "intervals": {
+        "title": "Polling intervals",
+        "description": "Adjust intervals in seconds (positive whole numbers). Other options are preserved. Entries are not automatically reloaded.",
         "data": {
           "update_interval": "Update interval (seconds)",
           "update_interval_live": "Interval during live games (seconds)"
         }
+      },
+      "logos": {
+        "title": "Manage central logos",
+        "description": "Select a known team from any entry or type another team name. The mapping applies everywhere for that name (case and extra whitespace are ignored). Per-card logo_overrides still take precedence.",
+        "data": {
+          "team_name": "Team (select or enter a name)"
+        }
+      },
+      "logo_action": {
+        "title": "Edit logo",
+        "description": "Team: {team_name}.\n\nSet an image URL, upload a file or remove the central override. Original API images remain unchanged.",
+        "menu_options": {
+          "logo_url": "Set or edit image URL",
+          "logo_upload": "Upload image file",
+          "logo_restore": "Restore API original"
+        }
+      },
+      "logo_url": {
+        "title": "Set image address",
+        "description": "Team: {team_name}.\n\nEnter an HTTP(S) URL or a relative path such as /local/club.png. The server does not download it. Saving replaces the central mapping for this team across all entries.",
+        "data": {
+          "url": "Image URL or relative path"
+        }
+      },
+      "logo_upload": {
+        "title": "Upload image file",
+        "description": "Team: {team_name}.\n\nPNG, JPEG or WebP, up to 5 MiB, 4096 pixels per side and 16 million pixels. No animation or SVG. The image is stored as a metadata-free PNG and is publicly accessible via /local. Saving changes the central mapping for all entries. You may need to select the file again after an error.",
+        "data": {
+          "file_id": "Image file"
+        }
+      },
+      "logo_restore": {
+        "title": "Restore API original",
+        "description": "Team: {team_name}.\n\nRemove this team's central logo override across all entries. Cards will use the unchanged API image unless their own logo_overrides takes precedence. Uploaded files are not deleted because other mappings may still use them.",
+        "data": {
+          "confirm": "Confirm removal of the central override"
+        }
       }
+    },
+    "error": {
+      "invalid_interval": "Enter positive whole numbers of seconds.",
+      "invalid_team_name": "Enter a team name of 1 to 200 characters without control characters.",
+      "invalid_url": "Enter a valid HTTP(S) URL without credentials or a relative image path. Other protocols, leading double slashes, backslashes and control characters are not allowed.",
+      "invalid_upload": "The upload is missing, expired or invalid. Select the image file again.",
+      "invalid_image": "The file is not a complete, valid single-frame PNG, JPEG or WebP image. SVG, HTML, other formats and animations are not allowed.",
+      "file_too_large": "File too large: up to 5 MiB for the upload or 16 MiB after PNG conversion.",
+      "image_too_large": "Image too large: up to 4096 pixels per side and 16 million pixels in total.",
+      "storage_error": "Logo data could not be reliably loaded or saved. The change was not confirmed. Check free space and the Home Assistant log; do not overwrite existing data.",
+      "confirmation_required": "Confirm removal of the central logo override."
+    },
+    "abort": {
+      "logo_saved": "Central logo mapping saved for all entries. Polling intervals and original API images remain unchanged.",
+      "logo_restored": "Central logo override removed. The unchanged API image applies again unless a per-card override takes precedence. Polling intervals remain unchanged.",
+      "storage_error": "Central logo data could not be safely loaded. Nothing was overwritten. Check the Home Assistant log and resolve the storage error."
     }
   }
 }

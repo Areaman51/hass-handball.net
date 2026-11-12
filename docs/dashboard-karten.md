@@ -129,7 +129,7 @@ Die Team- und Tabellenkarte besitzen einen eigenen Konfigurationseditor. Die Spi
 
 ## Eigene Vereinslogos: `logo_overrides`
 
-Alle drei Karten unterstützen optional dieselbe Zuordnung **Mannschaftsname → Bildadresse**. Sie ist nicht auf bestimmte Vereine oder Wettbewerbe beschränkt. Damit lassen sich beispielsweise bereits beschnittene Vorschaubilder oder JPEGs mit eingebranntem Hintergrund durch eine bessere vorhandene Grafik ersetzen. Die Karte rekonstruiert keine fehlenden Bildteile und entfernt keine Farben aus einem Wappen.
+Alle drei Karten unterstützen optional dieselbe individuelle Zuordnung **Mannschaftsname → Bildadresse**. Für eine gemeinsame Einstellung über alle Karten hinweg stattdessen die [zentrale Logo-Verwaltung der Integration](vereinslogos.md) verwenden; die folgenden manuellen `logo_overrides` haben als Karten-Ausnahme Vorrang. Die Funktion ist nicht auf bestimmte Vereine oder Wettbewerbe beschränkt. Damit lassen sich beispielsweise bereits beschnittene Vorschaubilder oder JPEGs mit eingebranntem Hintergrund durch eine bessere vorhandene Grafik ersetzen. Die Karte rekonstruiert keine fehlenden Bildteile und entfernt keine Farben aus einem Wappen.
 
 ### Schritt für Schritt: ein Logo austauschen
 
@@ -154,7 +154,7 @@ Die Namen und Adressen sind **Platzhalter**. Die lokale Datei muss tatsächlich 
 
 Denselben `logo_overrides`-Block kann man auch in die Konfiguration von `handball-tournament-table-card` und `handball-schedule-card` aufnehmen. Die Zuordnung gehört zur **jeweiligen Karte**, nicht zu einer globalen HA-Einstellung. Namen so verwenden, wie sie in deren Mannschaftsdaten stehen; Groß-/Kleinschreibung, äußere Leerzeichen und mehrfache Leerzeichen werden beim Vergleich vereinheitlicht. Eine Namensänderung oder ein abweichender Mannschaftszusatz kann eine weitere Zuordnung erfordern; es handelt sich nicht um eine unscharfe Vereinssuche.
 
-- Ohne passende Zuordnung bleibt das bisherige API-Logo erhalten.
+- Ohne passende individuelle Zuordnung wird die zentrale Quelle verwendet, sofern vorhanden, sonst das bisherige API-Logo.
 - Die Teamkarte berücksichtigt Ersatzlogos im nächsten Spiel und im Live-Bereich, jeweils für Heim und Gast.
 - Die Tabellenkarte berücksichtigt sie pro Mannschaftszeile; `show_logo: false` bleibt wirksam.
 - Die Spielplankarte kann ein passendes Ersatzlogo auch ohne `table_entity` zeigen. Für nicht zugeordnete Teams kommen die bisherigen Logos weiterhin aus der optionalen Tabelle.
@@ -166,10 +166,10 @@ Denselben `logo_overrides`-Block kann man auch in die Konfiguration von `handbal
 ### Ein bereits verwendetes Bild aktualisieren oder zurücksetzen
 
 - **Bildinhalt austauschen:** Lokale `/local/`-Dateien können von Browsern und Apps länger gecacht werden. Für eine neue Grafik vorzugsweise einen neuen Dateinamen verwenden, etwa `beispielstadt-v2.png`, und die Zuordnung anpassen. Alternativ den Versionsparameter ändern, etwa `/local/vereinslogos/beispielstadt.png?v=2`. Danach die Karte speichern und vollständig neu laden. Eine fehlerhafte Bildquelle wird bis zur erneuten Konfiguration/Neuladung bewusst nicht dauernd erneut versucht.
-- **Wieder das API-Logo verwenden:** Den betreffenden Mannschaftseintrag aus `logo_overrides` entfernen und speichern. Gibt es keine weiteren Zuordnungen, kann der gesamte Block entfallen. Auch dann die Karte neu laden.
+- **Wieder das API-Logo verwenden:** Den betreffenden Mannschaftseintrag aus `logo_overrides` entfernen und speichern. Gibt es keine weiteren Zuordnungen, kann der gesamte Block entfallen. Danach die Karte neu laden. Ohne diese Karten-Ausnahme gilt zunächst eine vorhandene zentrale Logo-Zuordnung. Fehlt diese zentrale Zuordnung oder ist ihre Bildquelle nicht ladbar, versucht die Karte das API-Bild. Erst wenn auch dieses fehlt oder nicht geladen werden kann, bleibt ein neutraler leerer Bildplatz. Soll tatsächlich das API-Original statt einer zentralen Zuordnung gelten, zusätzlich in der zentralen Logo-Verwaltung die betreffende Mannschaft wählen, **API-Original wiederherstellen** auswählen und das Entfernen bestätigen. Diese zentrale Entfernung gilt **integrationsweit über alle Handball.net-Konfigurationseinträge hinweg und für alle Karten ohne eigene individuelle Ausnahme** für diese Mannschaft, nicht nur für die gerade bearbeitete Karte. Andere individuelle `logo_overrides`-Ausnahmen bleiben unverändert und weiterhin vorrangig.
 - **Weiter altes Bild sichtbar:** Im Browser einen Hard-Reload durchführen; in der Companion-App gegebenenfalls den Frontend-Cache zurücksetzen. Keine zweite Kartenressource hinzufügen und keinen Integrationseintrag löschen.
 
-**Noch keine zentrale Logo-Verwaltung:** Unter **Einstellungen → Geräte & Dienste → Handball.net → Optionen/Konfigurieren** werden derzeit nur Aktualisierungsintervalle gepflegt. Dort ist in diesem Stand weder eine Logo-Auswahl noch ein Bildupload implementiert. Die obige Kartenkonfiguration ist der unterstützte Weg.
+**Zentrale Alternative:** Unter **Einstellungen → Geräte & Dienste → Handball.net → Optionen/Konfigurieren → Logos verwalten** lässt sich dieselbe Mannschaft zentral für alle Karten einstellen und ein geprüftes Bild hochladen. [Bedienung, Grenzen und Datenschutz](vereinslogos.md). Eine vorhandene individuelle `logo_overrides`-Zuordnung der Karte bleibt vorrangig; diesen Eintrag entfernen, wenn stattdessen die zentrale Quelle gelten soll.
 
 Ein weißes Rechteck oder schwarzer Hintergrund, der bereits zur Quelldatei gehört, verschwindet durch `object-fit: contain` nicht. Für einen anderen Hintergrund ist eine geeignete alternative Grafik nötig. Vereinsbilder werden nicht automatisch gesucht oder als Bestandteil dieses MIT-Repositories weiterverteilt.
 

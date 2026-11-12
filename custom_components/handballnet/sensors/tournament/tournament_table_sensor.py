@@ -3,6 +3,8 @@ from .base_sensor import HandballBaseSensor
 from ...utils import HandballNetUtils
 
 class HandballTournamentTableSensor(HandballBaseSensor):
+    _supports_central_logos = True
+
     def __init__(self, coordinator, entry, tournament_id, api=None):
         super().__init__(coordinator, entry, tournament_id)
         self.utils = HandballNetUtils()
@@ -28,10 +30,11 @@ class HandballTournamentTableSensor(HandballBaseSensor):
         tournament_bucket = self._get_tournament_bucket()
         table_rows = tournament_bucket.get("table_rows", [])
         if not table_rows:
-            return {"tournament_name": self._tournament_id, "tournament_acronym": "", "organization": "", "total_teams": 0, "table": [], "leader": None, "last_place": None}
+            return {**self.central_logo_attributes, "tournament_name": self._tournament_id, "tournament_acronym": "", "organization": "", "total_teams": 0, "table": [], "leader": None, "last_place": None}
 
         tournament_info = tournament_bucket.get("tournament_info", {})
         return {
+            **self.central_logo_attributes,
             "tournament_name": tournament_info.get("name", self._tournament_id),
             "tournament_acronym": tournament_info.get("acronym", ""),
             "organization": tournament_info.get("organization", ""),

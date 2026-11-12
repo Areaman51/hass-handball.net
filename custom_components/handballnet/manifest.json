@@ -6,7 +6,8 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "http"
+    "http",
+    "file_upload"
   ],
   "documentation": "https://github.com/Areaman51/hass-handball.net/blob/main/README.md",
   "iot_class": "cloud_polling",

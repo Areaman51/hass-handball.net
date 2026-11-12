@@ -36,7 +36,7 @@ Für die ergänzenden Karten-/Sicherheitsregressionen ist außerdem eine Node.js
 
 ```bash
 node --version
-node --test tests/test_card_security.js tests/test_logo_overrides.js
+node --test tests/test_card_security.js tests/test_logo_overrides.js tests/test_central_logo_cards.js tests/test_next_match_logo_size.js
 ```
 
 Die Node-Tests laufen lokal und prüfen gezielte JS-Regressionen mit simuliertem Kontext. Sie sind kein echter Browser-/Home-Assistant-Frontendtest. Python- und Node-Ergebnisse getrennt angeben; ein grüner Lauf ersetzt den jeweils anderen nicht.
@@ -61,7 +61,7 @@ Wenn Home Assistant importierbar ist, kann die Testsuite statt der Stubs echte M
 
 Die Python-Regressionssuite wurde auf dem zusammengeführten Ausgangsstand erfolgreich lokal ausgeführt. Ein echter API-Smoke für ausgewählte Datenpfade war ebenfalls erfolgreich. Zusätzliche Sicherheits-/Robustheitskorrekturen und Node-Regressionen erweitern diesen Stand; deshalb wird hier keine feste abschließende Testzahl vorgegeben. Bei Änderungen die tatsächlich ausgeführten Befehle, Python-/Node-Versionen, Datum, Commit und Ergebnisse ergänzen. Keine Testzahlen aus Erwartungen oder aus einer alten Ausgabe übernehmen.
 
-Die abschließende lokale Prüfung einschließlich Logo-Overrides am **11. November 2026** ergab **61 bestandene Python-Tests und 84 bestandene Node-Tests**. Hinzu kommen 32 gezielte Browserfälle mit kontrollierten Daten und sechs Browserfälle mit HA-ausgeliefertem Kartencode und tatsächlichen Entitätsdaten in einer separaten Kartenhülle. Befehle, Umfang, begrenzter Piloteinbau und offene Grenzen sind im [Prüfstand](pruefstand.md) festgehalten. Das ist **keine vollständige Releaseabnahme** und schließt die oben genannten End-to-End-Lücken nicht.
+Die ergänzte zentrale Logo-Verwaltung und die größeren Nächstes-Spiel-Logos wurden am **12. November 2026** mit **155 bestandenen Python-Tests und 144 bestandenen Node-Tests** geprüft. Native Logo-Smokes liefen unter HA 2026.11.0 und 2026.11.1; die öffentliche Fixture hat vier Schritte, eine zusätzliche lokale Recovery-Prüfung sechs einschließlich der regulären Datenpfade. Anschließend wurde der gezielte Backend-/Karteneinbau in einer HA-2026.11.1-Pilotinstallation mit bestehenden Einträgen geprüft: echte Optionsflows für URL, Upload und Reset, unmittelbare Updates der vier Sensorquellen sowie sechs Browserfälle mit tatsächlich ausgelieferten Dateien und echten Kartendaten. Die Browserfälle verwenden eine separate Kartenhülle, nicht die vollständige angemeldete HA-Oberfläche. Der historische Stand individueller Karten-Overrides vom 11. November (61 Python-/84 Node-Tests sowie 32 lokale und sechs begrenzte Pilot-Browserfälle) ist im [Prüfstand](pruefstand.md) getrennt dokumentiert. Eine vollständige Releaseabnahme, Marketplace-/HACS-Migration und die übrigen End-to-End-Lücken bleiben offen.
 
 ## Vollständige HA-Entwicklungsumgebung
 
@@ -69,12 +69,26 @@ Die abschließende lokale Prüfung einschließlich Logo-Overrides am **11. Novem
 
 Die in `hacs.json` genannte Mindestversion und die in `requirements.txt` fixierte Entwicklungsbasis sind unterschiedliche Angaben. Daraus lässt sich keine vollständig getestete Kompatibilitätsmatrix ableiten. Vor einem Release müssen diese Metadaten und die wirklich getesteten Versionen aufeinander abgestimmt werden.
 
-Die mitgelieferten Entwicklungsskripte und Containerdateien sind Hilfsmittel, keine Zusage einer vollständigen sofort lauffähigen HA-Testinstanz. Keine reale Heimkonfiguration als Testfixture verwenden.
+Die mitgelieferten älteren Entwicklungsskripte und Containerdateien sind Hilfsmittel, keine Zusage einer vollständigen sofort lauffähigen HA-Testinstanz. Keine reale Heimkonfiguration als Testfixture verwenden.
+
+### Nativer Logo-Smoke unter HA 2026.11.0
+
+Die neue Fixture `tests/native_logo_smoke.py` verwendet echte HA-Module, Sensoren und HTTP-/Options-/Uploadpfade mit künstlichen Coordinator-Daten. Sie kontaktiert weder eine produktive HA-Instanz noch handball.net und bindet ausschließlich `127.0.0.1`. Separat von der Stub-Umgebung ausführen; Python **3.14.2 oder neuer** ist für diese HA-Version erforderlich:
+
+```bash
+python3.14 -m venv .venv-native
+. .venv-native/bin/activate
+python -m pip install homeassistant==2026.11.0
+python tests/native_logo_smoke.py
+```
+
+Ohne Parameter führt die Fixture vier Prüfungen aus und stoppt HA anschließend. Mit `python tests/native_logo_smoke.py --serve` bleibt die isolierte Oberfläche für Browserprüfungen erreichbar; die tatsächliche Loopback-Adresse wird ausgegeben. Der lokale Testnutzer und die temporären Daten sind nur Testmittel. Den Server nicht ins Netzwerk freigeben und erzeugte Auth-/Store-/Datenbankdateien niemals veröffentlichen. Ein eigener dauerhafter Arbeitsordner kann mit `HANDBALLNET_NATIVE_WORKSPACE` gewählt werden. Die Fixture ersetzt keinen vollständigen Config-Entry-, API-, HACS- oder Migrationstest.
 
 ## Architektur zur Orientierung
 
 - `config_flow.py`: Benutzerflow, Team-/Vereins-/Wettbewerbssuche und Team-/Vereins-Neukonfiguration.
-- `options_flow.py`: genau zwei Abfrageintervalle.
+- `options_flow.py`: getrennte Menüs für Abfrageintervalle und zentrale Logo-Verwaltung (Mannschaft, URL, geprüfter Upload, Rücksetzen).
+- `logo_manager.py`: instanzweite persistente Zuordnungen, Bildprüfung, Revision und Listener; kein Abruf externer Bildadressen.
 - `http_client.py`: gemeinsamer neuer API-Zugriff, öffentlicher Token-Bootstrap, Header, Fehlerbehandlung und Logausschnitte.
 - `api.py`: Pagination, Normalisierung und API-Caches; enthält noch Legacy-Fallbackcode.
 - `coordinator.py`: gemeinsames Datenmodell je Config-Entry, parallele Teamabfragen, Live-Fenster, Turniersammlung und Laufzeitmessungen.

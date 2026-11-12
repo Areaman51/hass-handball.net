@@ -20,7 +20,7 @@ Read the detailed [installation, migration and rollback guide in German](install
 4. **Do not delete existing HA config entries. Do not edit .storage. Do not install the original and the fork side by side.** Both use the domain `handballnet`.
 5. A code-only rollback means stopping HA and restoring the entire saved previous component directory. Deleted entries or registries cannot be recovered by restoring Python files; a backup restore may then be required and reverts later changes in the restored scope.
 
-HACS is an optional, conditional route: add `https://github.com/Areaman51/hass-handball.net` as a custom **Integration** repository only if your HACS version supports it. Select **main only if offered**. `zip_release: false` avoids requiring a release asset, but does not guarantee that every HACS version can install an unreleased branch. Use manual source installation if it cannot. No inclusion in the HACS default catalogue is claimed. Existing HACS source switching remains untested.
+Home Assistant 2026.11 includes the Marketplace, which shares the HACS catalogue and `hacs.json` format. The [main guide's Marketplace link](../README.md#marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet) offers this fork as a custom **Integration** repository; a GitHub connection is required. Without published releases, the Marketplace uses the latest default-branch commit, still a development version. No default-catalogue inclusion, successful Marketplace installation or practical source migration is claimed. Original and fork use the same domain, so an existing domain owner may block the second repository. Keep HA entries and follow the migration precautions rather than deleting them.
 
 ## Setup
 
@@ -31,7 +31,7 @@ Add **Handball.net** through Settings → Devices & services. Choose:
 - **Tournament → Search by Club:** resolve a phase from a selected team's first returned match; this may not identify the intended competition.
 - **Tournament → Search by Competition:** choose competition and phase/group explicitly. There is no free-form tournament-ID step.
 
-Options expose `update_interval` (default 3600 seconds) and `update_interval_live` (15 seconds). Reload the entry after changing options if needed. Team/club reconfiguration is implemented; a season selector, guaranteed automatic season migration and tournament reconfiguration are not.
+Options separate polling intervals from central logo management. `update_interval` defaults to 3600 seconds and `update_interval_live` to 15 seconds; reload the entry after interval changes if needed. Logo management selects a team, accepts an image URL or validated PNG/JPEG/WebP upload, and restores the API original after confirmation. Logo changes reach all three cards without API refresh or restart; per-card `logo_overrides` remain higher-priority exceptions. Uploaded images are publicly accessible static files, not a private photo store; see the [logo guide](vereinslogos.md). Team/club reconfiguration is implemented; a season selector, guaranteed automatic season migration and tournament reconfiguration are not.
 
 ## Features and important limits
 
@@ -40,6 +40,8 @@ Per-team game, statistics, table-position, health and live sensors, one live bin
 “Live” primarily means a two-hour window after scheduled start, not a confirmed live status. Schedule/table caches can last one hour and team information six hours. The default polling interval may delay detecting a kickoff. Declared custom actions currently have handler-binding issues; prefer native HA entry reload and diagnostics UI.
 
 Three cards are included and automatically loaded by the integration:
+
+Next-match logos are 64×64 pixels with preserved aspect ratio; live-ticker, table and schedule logo sizes remain unchanged. The 12 November 2026 verification covered 155 Python and 144 Node tests, isolated native HA 2026.11.0/2026.11.1 logo checks and a targeted HA 2026.11.1 pilot with real options/upload/reset and six browser cases using HA-served files and actual card data. Those browser cases used a separate card wrapper, not a full authenticated HA/Companion-app test. The pilot user additionally accepted their own client display; full release and Marketplace/HACS migration acceptance remain separate.
 
 ```yaml
 type: custom:handball-team-card

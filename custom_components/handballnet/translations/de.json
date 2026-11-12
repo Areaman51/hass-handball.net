@@ -122,12 +122,73 @@
     "step": {
       "init": {
         "title": "Optionen für Handball-Entität",
-        "description": "Passe die Aktualisierungsintervalle an",
+        "description": "Wähle Abfrageintervalle oder die zentrale Logo-Verwaltung. Logos gelten für alle Handball.net-Einträge; Logoänderungen lösen keine API-Abfrage und kein Neuladen aus.",
+        "menu_options": {
+          "intervals": "Abfrageintervalle",
+          "logos": "Logos verwalten"
+        }
+      },
+      "intervals": {
+        "title": "Abfrageintervalle",
+        "description": "Passe die Intervalle in Sekunden an (ganze Zahlen größer als null). Andere Optionen bleiben erhalten. Einträge werden nicht automatisch neu geladen.",
         "data": {
           "update_interval": "Aktualisierungsintervall (Sekunden)",
           "update_interval_live": "Intervall während Spielen (Sekunden)"
         }
+      },
+      "logos": {
+        "title": "Logos zentral verwalten",
+        "description": "Wähle eine bekannte Mannschaft aus allen Einträgen oder gib einen anderen Mannschaftsnamen ein. Die Zuordnung gilt überall für diesen Namen (Groß-/Kleinschreibung und zusätzliche Leerzeichen werden ignoriert). Kartenbezogene logo_overrides haben weiterhin Vorrang.",
+        "data": {
+          "team_name": "Mannschaft (auswählen oder Namen eingeben)"
+        }
+      },
+      "logo_action": {
+        "title": "Logo bearbeiten",
+        "description": "Mannschaft: {team_name}.\n\nEine eigene Bild-URL setzen, ein Bild hochladen oder die zentrale Ausnahme entfernen. Originalbilder der API bleiben unverändert.",
+        "menu_options": {
+          "logo_url": "Bild-URL setzen oder bearbeiten",
+          "logo_upload": "Bilddatei hochladen",
+          "logo_restore": "API-Original wiederherstellen"
+        }
+      },
+      "logo_url": {
+        "title": "Bildadresse festlegen",
+        "description": "Mannschaft: {team_name}.\n\nGib eine HTTP(S)-URL oder einen relativen Pfad wie /local/verein.png ein. Es erfolgt kein Download auf dem Server. Speichern ersetzt die zentrale Zuordnung für diese Mannschaft in allen Einträgen.",
+        "data": {
+          "url": "Bild-URL oder relativer Pfad"
+        }
+      },
+      "logo_upload": {
+        "title": "Bilddatei hochladen",
+        "description": "Mannschaft: {team_name}.\n\nPNG, JPEG oder WebP, maximal 5 MiB, 4096 Pixel je Seite und 16 Millionen Pixel. Keine Animationen oder SVG. Das Bild wird als PNG ohne Metadaten gespeichert und ist über /local öffentlich erreichbar. Speichern ändert die zentrale Zuordnung für alle Einträge. Nach einem Fehler gegebenenfalls erneut auswählen.",
+        "data": {
+          "file_id": "Bilddatei"
+        }
+      },
+      "logo_restore": {
+        "title": "API-Original wiederherstellen",
+        "description": "Mannschaft: {team_name}.\n\nEntferne die zentrale Logo-Ausnahme dieser Mannschaft für alle Einträge. Die Karten zeigen wieder das unveränderte API-Bild, sofern kein eigener logo_overrides-Eintrag der Karte Vorrang hat. Hochgeladene Dateien werden nicht gelöscht, da andere Zuordnungen sie verwenden können.",
+        "data": {
+          "confirm": "Zentrale Ausnahme wirklich entfernen"
+        }
       }
+    },
+    "error": {
+      "invalid_interval": "Bitte positive ganze Sekundenwerte eingeben.",
+      "invalid_team_name": "Bitte einen Mannschaftsnamen mit 1 bis 200 Zeichen ohne Steuerzeichen eingeben.",
+      "invalid_url": "Bitte eine gültige HTTP(S)-URL ohne Zugangsdaten oder einen relativen Bildpfad eingeben. Andere Protokolle, doppelte Schrägstriche am Anfang, Rückwärtsschrägstriche und Steuerzeichen sind nicht erlaubt.",
+      "invalid_upload": "Upload fehlt, ist abgelaufen oder ungültig. Bitte die Bilddatei erneut auswählen.",
+      "invalid_image": "Die Datei ist kein gültiges, vollständiges PNG-, JPEG- oder WebP-Einzelbild. SVG, HTML, andere Formate und Animationen sind nicht erlaubt.",
+      "file_too_large": "Datei zu groß: maximal 5 MiB für den Upload bzw. 16 MiB nach PNG-Umwandlung.",
+      "image_too_large": "Bild zu groß: maximal 4096 Pixel je Seite und 16 Millionen Pixel insgesamt.",
+      "storage_error": "Logo-Daten konnten nicht zuverlässig geladen oder gespeichert werden. Die Änderung wurde nicht bestätigt. Bitte Speicherplatz und Home-Assistant-Protokoll prüfen; vorhandene Daten nicht überschreiben.",
+      "confirmation_required": "Bitte das Entfernen der zentralen Logo-Ausnahme bestätigen."
+    },
+    "abort": {
+      "logo_saved": "Zentrale Logo-Zuordnung gespeichert. Sie gilt für alle Einträge; Abfrageintervalle und API-Originalbilder bleiben unverändert.",
+      "logo_restored": "Zentrale Logo-Ausnahme entfernt. Das unveränderte API-Bild gilt wieder, sofern keine Karten-Ausnahme Vorrang hat. Abfrageintervalle bleiben unverändert.",
+      "storage_error": "Zentrale Logo-Daten konnten nicht sicher geladen werden. Es wurde nichts überschrieben. Bitte das Home-Assistant-Protokoll prüfen und den Speicherfehler beheben."
     }
   }
 }

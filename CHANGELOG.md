@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.0.32.dev0 – Community-Entwicklungsstand auf main, unveröffentlicht
+## 0.0.32.dev0 – Community-Entwicklungsstand auf main, noch kein Fork-Release
 
 Dieser Abschnitt beschreibt den zusammengeführten Entwicklungsstand des Forks **Areaman51/hass-handball.net**, kein veröffentlichtes Release und keine vollständige Releaseabnahme. Die folgenden älteren Abschnitte bleiben als ursprüngliche Änderungshistorie erhalten. Insbesondere ist die historische Löschanweisung unter v0.0.29 **nicht** die aktuelle Anleitung zum Fork-Wechsel: bestehende HA-Konfigurationseinträge erhalten; siehe [Installation und Rollback](docs/installation-und-umstieg.md).
 
@@ -11,6 +11,15 @@ Dieser Abschnitt beschreibt den zusammengeführten Entwicklungsstand des Forks *
 - Geräteverknüpfungen, verbesserte Turnierzuordnung und Sammlung der Turnierspiele über Teamspielpläne.
 - Turnier-Spielplan-Sensor mit kommenden Begegnungen, bis zu 21 jüngsten Begegnungen und Gruppierung nach Spieltag beziehungsweise Kalenderwoche.
 - Mitgelieferte Spielplankarte sowie Team-/Tabellenkarten mit gezielteren DOM-Aktualisierungen und Cache-Busting für Frontenddateien.
+
+### Zentrale Logo-Verwaltung
+
+- Nativer Optionsdialog mit Mannschaftsauswahl über alle eingerichteten Einträge, Bildadresse, geprüftem PNG-/JPEG-/WebP-Upload und bestätigter Rückkehr zum API-Original.
+- Dauerhafte gemeinsame Zuordnung und sofortige Verteilung an Team-, Tabellen- und Spielplankarte, ohne externe Abfrage oder Core-Neustart bei Logoänderungen. Individuelle Karten-Ausnahmen behalten Vorrang.
+- Inhaltsprüfung, Größenbegrenzung, metadatenfreie PNG-Neukodierung, atomare unveränderliche Hashdateien und enger eigener Auslieferungspfad. Kein serverseitiger Download beliebiger Bildadressen.
+- Intervalloptionen und API-Originalbilder bleiben erhalten. Beschädigter optionaler Logo-Store blockiert die übrigen Handballdaten nicht; fehlerhafte Daten werden nicht still überschrieben. [Anleitung und öffentlich erreichbare Bildadressen](docs/vereinslogos.md).
+- Sensorabonnements überleben anfänglich fehlgeschlagenes Store-Laden; nach Reparatur erreichen spätere Logoänderungen bereits vorhandene Sensoren sofort. Cleanup und Veröffentlichung erst nach erfolgreicher Speicherung sind regressionsgeprüft.
+- Größere Logos in „Nächstes Spiel“: 64×64 statt 36×36 Pixel bei erhaltenem Seitenverhältnis. Live-Ticker, Tabelle und Spielplan behalten ihre bisherigen Logogrößen.
 
 ### Optionale Logoquellen
 
@@ -46,6 +55,7 @@ Der öffentliche GitHub-Stand enthält damit zusätzliche Sicherheits-/Robusthei
 
 - Python-Regressionssuite mit HA-Stubs und ergänzende Node-Tests werden lokal ausgeführt; keine pauschale abschließende Testzahl für jeden späteren Entwicklungscommit.
 - Ein echter API-Smoke gegen ausgewählte Datenpfade war erfolgreich. Das ist weder eine echte HA-Integrationssuite noch eine vollständige Funktions-/Releaseabnahme.
+- Zentraler Logo-Einbau und größere Teamlogos wurden zusätzlich gezielt unter HA 2026.11.1 in einer Pilotinstallation mit bestehenden Einträgen abgenommen: native URL-/Upload-/Reset-Optionen, unmittelbare Sensorupdates und sechs Browserfälle mit live ausgelieferten Karten. Das ersetzt keinen vollständigen Marketplace-/HACS-Umstiegstest oder eine vollständige angemeldete HA-/Companion-App-Abnahme.
 - Vorhandene GitHub-Workflows bleiben unverändert und führen pytest/Node derzeit nicht aus. HACS-/hassfest-Validierung ist kein Ersatz für diese Tests.
 - Reale HA-UI-/Options-/Service-/Kalender-/Browser- und HACS-Migrationsprüfungen sind gesondert erforderlich. Bekannte Attribut- und Handlerabweichungen sind in [Dashboard-Karten](docs/dashboard-karten.md), [Fehlersuche](docs/fehlersuche.md) und [Entwicklung](docs/entwicklung.md) offengelegt.
 
