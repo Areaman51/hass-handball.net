@@ -2,22 +2,22 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
 import hashlib
-from io import BytesIO
 import logging
 import os
-from pathlib import Path
 import re
-import tempfile
-from urllib.parse import urlsplit
-from uuid import UUID
+import stat
 import warnings
-
-from PIL import Image, ImageOps, UnidentifiedImageError
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack, contextmanager
+from io import BytesIO
+from pathlib import Path
+from urllib.parse import urlsplit
+from uuid import UUID, uuid4
 
 from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.helpers.storage import Store
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .const import DOMAIN
 
@@ -82,6 +82,62 @@ MAX_DIMENSION = 4096
 MAX_PIXELS = 16_000_000
 MAX_OUTPUT_BYTES = 16 * 1024 * 1024
 _LOGGER = logging.getLogger(__name__)
+_UPLOAD_DIR_FD_OPERATIONS = frozenset((os.open, os.mkdir, os.link, os.unlink, os.stat))
+_UPLOAD_NOFOLLOW_OPERATIONS = frozenset((os.link, os.stat))
+
+
+@contextmanager
+def _open_logo_directory(config_path: str) -> Iterator[int]:
+    """Pin each directory below the trusted HA config anchor without symlinks."""
+    if (
+        os.name != "posix"
+        or not all(getattr(os, flag, 0) for flag in ("O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK"))
+        or not _UPLOAD_DIR_FD_OPERATIONS.issubset(getattr(os, "supports_dir_fd", ()))
+        or not _UPLOAD_NOFOLLOW_OPERATIONS.issubset(getattr(os, "supports_follow_symlinks", ()))
+    ):
+        raise LogoStorageError("storage_error")
+    with ExitStack() as stack:
+        directory_fd = os.open(config_path, os.O_RDONLY | os.O_DIRECTORY)
+        stack.callback(os.close, directory_fd)
+        chain = []
+        for component in ("www", DOMAIN, "logos"):
+            parent_fd = directory_fd
+            try:
+                os.mkdir(component, dir_fd=directory_fd)
+            except FileExistsError:
+                pass
+            directory_fd = os.open(
+                component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=directory_fd,
+            )
+            stack.callback(os.close, directory_fd)
+            chain.append((parent_fd, component, directory_fd))
+        yield directory_fd
+        # Descriptor-relative operations cannot be redirected by path replacement.
+        # Also refuse success for a directory that visibly moved during the write.
+        for parent_fd, component, child_fd in chain:
+            current = os.stat(component, dir_fd=parent_fd, follow_symlinks=False)
+            pinned = os.fstat(child_fd)
+            if not stat.S_ISDIR(current.st_mode) or (current.st_dev, current.st_ino) != (pinned.st_dev, pinned.st_ino):
+                raise LogoStorageError("storage_error")
+
+
+def _verify_logo_file(directory_fd: int, name: str, digest: str) -> None:
+    """Only reuse a bounded regular file, never a symlink or blocking FIFO."""
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory_fd)
+    try:
+        metadata = os.fstat(fd)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > MAX_OUTPUT_BYTES:
+            raise LogoStorageError("storage_error")
+        with os.fdopen(fd, "rb", closefd=False) as existing:
+            contents = existing.read(MAX_OUTPUT_BYTES + 1)
+        if len(contents) > MAX_OUTPUT_BYTES or hashlib.sha256(contents).hexdigest() != digest:
+            raise LogoStorageError("storage_error")
+        current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (metadata.st_dev, metadata.st_ino):
+            raise LogoStorageError("storage_error")
+    finally:
+        os.close(fd)
 
 
 class LogoManager:
@@ -156,7 +212,24 @@ class LogoManager:
         except ValueError as err:
             raise LogoValidationError("invalid_upload") from err
         async with self._save_lock:
-            url = await self.hass.async_add_executor_job(self._process_upload, file_id)
+            job = asyncio.ensure_future(
+                self.hass.async_add_executor_job(self._process_upload, file_id)
+            )
+            try:
+                url = await asyncio.shield(job)
+            except asyncio.CancelledError as cancelled:
+                # The worker cannot be cancelled: keep its native upload context
+                # (including cleanup) serialized, but never persist this flow.
+                while not job.done():
+                    try:
+                        await asyncio.wait((job,))
+                    except asyncio.CancelledError:
+                        continue
+                try:
+                    job.result()
+                except Exception as err:
+                    raise cancelled from err
+                raise
             await self._async_save({**self._overrides, team: url}, retry=retry)
 
     def _process_upload(self, file_id: str) -> str:
@@ -166,7 +239,7 @@ class LogoManager:
             raise
         except ValueError as err:
             raise LogoValidationError("invalid_upload") from err
-        except OSError as err:
+        except (OSError, NotImplementedError) as err:
             raise LogoStorageError("storage_error") from err
 
     def _consume_upload(self, file_id: str) -> str:
@@ -201,24 +274,33 @@ class LogoManager:
             if len(contents) > MAX_OUTPUT_BYTES:
                 raise LogoValidationError("file_too_large")
             digest = hashlib.sha256(contents).hexdigest()
-            directory = Path(self.hass.config.path("www", DOMAIN, "logos"))
-            directory.mkdir(parents=True, exist_ok=True)
-            target = directory / f"{digest}.png"
-            # Same-directory link publishes the complete immutable file atomically
-            # without overwriting a shared asset. User filenames are never used.
-            with tempfile.NamedTemporaryFile(dir=directory, prefix=".logo-", delete=False) as temp:
-                temporary = Path(temp.name)
+            with _open_logo_directory(self.hass.config.path()) as directory_fd:
+                target = f"{digest}.png"
+                temporary = f".logo-{uuid4().hex}"
+                temp_fd = os.open(
+                    temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600, dir_fd=directory_fd,
+                )
                 try:
-                    temp.write(contents)
-                    temp.flush()
-                    os.fsync(temp.fileno())
+                    with os.fdopen(temp_fd, "wb", closefd=False) as temp:
+                        temp.write(contents)
+                        temp.flush()
+                        os.fsync(temp.fileno())
                     try:
-                        os.link(temporary, target)
+                        # Relative to the pinned directory even if its path changes.
+                        # link() never overwrites a possibly shared existing asset.
+                        os.link(temporary, target, src_dir_fd=directory_fd,
+                                dst_dir_fd=directory_fd, follow_symlinks=False)
                     except FileExistsError:
-                        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
-                            raise LogoStorageError("storage_error")
+                        pass
+                    # Check the published name as well as existing collisions: a
+                    # directory writer may have exchanged the temporary source.
+                    _verify_logo_file(directory_fd, target, digest)
                 finally:
-                    temporary.unlink(missing_ok=True)
+                    try:
+                        os.close(temp_fd)
+                    finally:
+                        os.unlink(temporary, dir_fd=directory_fd)
             return f"/local/{DOMAIN}/logos/{digest}.png"
 
     async def _async_save(self, overrides: dict[str, str], *, retry: bool = False) -> None:

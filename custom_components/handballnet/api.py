@@ -1,13 +1,27 @@
+import json
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote_plus
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
 from homeassistant.core import HomeAssistant
-from .const import HANDBALL_NET_BASE_URL, HANDBALL_NET_NEW_API_BASE_URL, HANDBALL_NET_WEB_URL
-from .utils import HandballNetUtils
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+from . import http_client, resource_limits
+from .const import (
+    HANDBALL_NET_BASE_URL,
+    HANDBALL_NET_NEW_API_BASE_URL,
+    HANDBALL_NET_WEB_URL,
+)
 from .http_client import HandballNetHTTPError, async_get_json
+from .resource_limits import (
+    charge_match_records,
+    validate_fields,
+    validate_last_page,
+    validate_records,
+)
+from .utils import HandballNetUtils
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,19 +37,64 @@ class HandballNetAPI:
         self.base_url = HANDBALL_NET_BASE_URL
         self.utils = HandballNetUtils()
         self.session = async_get_clientsession(hass)
-        self._league_table_cache = {}
-        self._team_schedule_cache = {}
-        self._team_info_cache = {}
+        self._league_table_cache: dict[str | int, tuple[float, List[Dict[str, Any]]]] = {}
+        self._team_schedule_cache: dict[str | int, tuple[float, List[Dict[str, Any]]]] = {}
+        self._team_info_cache: dict[str | int, tuple[float, Dict[str, Any]]] = {}
+        self._cache_sizes: dict[tuple[str, str | int], int] = {}
+
+    def _cache_result(
+        self, cache_name: str, key: str | int, result: Any, now: float,
+        *, max_entries: int, endpoint: str,
+    ) -> None:
+        """
+        Validate before publication; evict oldest inserts across all caches.
+
+        Byte accounting covers compact UTF-8 JSON values and UTF-8 key text;
+        original string/integer identifiers remain unchanged as cache keys.
+        The synchronous admission/eviction section cannot race between workers.
+        """
+        key_text = str(key)
+        validate_fields(key_text, endpoint)
+        key_bytes = len(key_text.encode("utf-8"))
+        size = key_bytes + resource_limits.payload_bytes(
+            result, endpoint,
+            min(resource_limits.MAX_CACHE_ENTRY_BYTES, resource_limits.MAX_CACHE_BYTES)
+            - key_bytes,
+        )
+        if cache_name == "_team_schedule_cache":
+            resource_limits.charge_match_bytes(result)
+        cache = getattr(self, cache_name)
+        if len(cache) >= max_entries:
+            cache.clear()
+            for identity in list(self._cache_sizes):
+                if identity[0] == cache_name:
+                    del self._cache_sizes[identity]
+        identity = (cache_name, key)
+        self._cache_sizes.pop(identity, None)
+        while sum(self._cache_sizes.values()) + size > resource_limits.MAX_CACHE_BYTES:
+            (old_cache, old_key) = next(iter(self._cache_sizes))
+            getattr(self, old_cache).pop(old_key, None)
+            del self._cache_sizes[(old_cache, old_key)]
+        self._cache_sizes[identity] = size
+        cache[key] = (now, result)
 
     async def _make_request(self, endpoint: str) -> Optional[Dict[str, Any]]:
         """Make HTTP request to handball.net API"""
         url = f"{self.base_url}/{endpoint}"
         try:
-            async with self.session.get(url) as resp:
+            async with http_client.budgeted_request_slot(self.hass, endpoint), self.session.get(
+                url, timeout=http_client.REQUEST_TIMEOUT, allow_redirects=False
+            ) as resp:
                 if resp.status != 200:
                     _LOGGER.warning("HTTP error %s for endpoint %s", resp.status, endpoint)
                     return None
-                return await resp.json()
+                body = await http_client.async_read_limited(
+                    resp, http_client.MAX_API_RESPONSE_BYTES, endpoint
+                )
+                if resp.content_type != "application/json" and not resp.content_type.endswith("+json"):
+                    return None
+                payload = json.loads(http_client.decode_body(resp, body))
+                return payload if isinstance(payload, dict) else None
         except Exception as e:
             _LOGGER.error("Request failed for endpoint %s: %s", endpoint, e)
             return None
@@ -52,6 +111,7 @@ class HandballNetAPI:
 
         return payload
 
+    @http_client.sequence_limited
     async def _fetch_new_api_paginated(
         self, endpoint: str, params: Dict[str, Any], referer: str
     ) -> List[Dict[str, Any]]:
@@ -61,16 +121,16 @@ class HandballNetAPI:
         last_page = 1
 
         while page <= last_page:
+            if endpoint == "matches":
+                resource_limits.check_match_work_start()
             payload = await self._make_new_api_request(
                 endpoint, {**params, "page": page}, referer
             )
-            if not payload:
-                break
-
-            results.extend(payload.get("data", []) or [])
-
-            pagination = payload.get("pagination") or {}
-            last_page = pagination.get("last_page", last_page) or last_page
+            records = validate_records(payload, endpoint, count=len(results))
+            last_page = validate_last_page(payload, endpoint, last_page)
+            if endpoint == "matches":
+                charge_match_records(len(records))
+            results.extend(records)
             page += 1
 
         return results
@@ -112,7 +172,7 @@ class HandballNetAPI:
             )
         return None
 
-    def _normalize_match(self, match: Dict[str, Any], team_id: str) -> Dict[str, Any]:
+    def _normalize_match(self, match: Dict[str, Any], team_id: str | int) -> Dict[str, Any]:
         """Normalize a new-API match into the schedule shape the rest of the integration expects"""
         local = match.get("local") or {}
         visitor = match.get("visitor") or {}
@@ -155,13 +215,15 @@ class HandballNetAPI:
             "error": None,
         }
 
-    async def get_team_schedule(self, team_id: str) -> Optional[List[Dict[str, Any]]]:
+    async def get_team_schedule(self, team_id: str | int) -> Optional[List[Dict[str, Any]]]:
         """Get team schedule/matches"""
         now = time.time()
 
         if team_id in self._team_schedule_cache:
             timestamp, cached_data = self._team_schedule_cache[team_id]
             if now - timestamp < self.TEAM_SCHEDULE_CACHE_TTL:
+                charge_match_records(len(cached_data))
+                resource_limits.charge_match_bytes(cached_data)
                 return cached_data
 
         matches = await self._fetch_new_api_paginated(
@@ -172,14 +234,14 @@ class HandballNetAPI:
         result = [self._normalize_match(match, team_id) for match in matches]
 
         if result is not None:
-            # Prevent unbounded growth
-            if len(self._team_schedule_cache) >= 20:
-                self._team_schedule_cache.clear()
-            self._team_schedule_cache[team_id] = (now, result)
+            self._cache_result(
+                "_team_schedule_cache", team_id, result, now,
+                max_entries=20, endpoint="matches",
+            )
 
         return result
 
-    async def get_team_info(self, team_id: str) -> Optional[Dict[str, Any]]:
+    async def get_team_info(self, team_id: str | int) -> Optional[Dict[str, Any]]:
         """Get team information including logo"""
         now = time.time()
 
@@ -192,8 +254,12 @@ class HandballNetAPI:
             f"teams/{team_id}", {}, referer=f"{HANDBALL_NET_WEB_URL}team/{team_id}"
         )
         team_data = payload.get("data") if payload else None
+        if team_data is not None and not isinstance(team_data, dict):
+            raise HandballNetHTTPError(200, f"teams/{team_id}", "invalid team record")
         if not team_data:
             return None
+
+        validate_fields(team_data, f"teams/{team_id}")
 
         club_logo = (team_data.get("club") or {}).get("logo")
         team_data["logo"] = self.utils.normalize_logo_url(club_logo) if club_logo else None
@@ -201,10 +267,10 @@ class HandballNetAPI:
         # Not returned by the new API; schedule matches carry a fallback tournament id.
         team_data.setdefault("defaultTournament", None)
 
-        # Prevent unbounded growth
-        if len(self._team_info_cache) >= 50:
-            self._team_info_cache.clear()
-        self._team_info_cache[team_id] = (now, team_data)
+        self._cache_result(
+            "_team_info_cache", team_id, team_data, now,
+            max_entries=50, endpoint=f"teams/{team_id}",
+        )
 
         return team_data
 
@@ -255,7 +321,7 @@ class HandballNetAPI:
         rows.sort(key=lambda r: r.get("rank") or 0)
         return rows
 
-    async def get_league_table(self, league_id: str) -> Optional[List[Dict[str, Any]]]:
+    async def get_league_table(self, league_id: str | int) -> Optional[List[Dict[str, Any]]]:
         """Get league table"""
         now = time.time()
 
@@ -269,14 +335,14 @@ class HandballNetAPI:
             {"phase_id": league_id},
             referer=f"{HANDBALL_NET_WEB_URL}ligen/{league_id}",
         )
-        standings = payload.get("data", []) if payload else []
+        standings = validate_records(payload, "standings")
         result = self._normalize_standings(standings)
 
         if result is not None:
-            # Prevent unbounded growth
-            if len(self._league_table_cache) >= 20:
-                self._league_table_cache.clear()
-            self._league_table_cache[league_id] = (now, result)
+            self._cache_result(
+                "_league_table_cache", league_id, result, now,
+                max_entries=20, endpoint="standings",
+            )
 
         return result
 
@@ -287,11 +353,9 @@ class HandballNetAPI:
             {},
             referer=f"{HANDBALL_NET_WEB_URL}match/{game_id}",
         )
-        if payload is None:
-            return None
+        return {"events": validate_records(payload, f"matches/{game_id}/events")}
 
-        return {"events": payload.get("data", []) or []}
-
+    @http_client.sequence_limited
     async def get_tournament_team_ids(self, tournament_id: str) -> list[str]:
         """Resolve tournament participants using team search fallback."""
         query = quote_plus(tournament_id)
@@ -301,11 +365,17 @@ class HandballNetAPI:
 
         page = 1
         page_count = 1
+        record_count = 0
         while page <= page_count:
             data = await self._make_request(f"teams/search?query={query}&page={page}")
-            teams = data.get("data", []) if data else []
-            meta = data.get("meta", {}) if data else {}
-            page_count = meta.get("pageCount", page_count) or page_count
+            if data is None:
+                http_client.check_response_budget("teams/search")
+                raise HandballNetHTTPError(None, "teams/search", "participant search failed")
+            teams = validate_records(data, "teams/search", count=record_count)
+            record_count += len(teams)
+            page_count = validate_last_page(
+                data, "teams/search", page_count, metadata="meta", key="pageCount"
+            )
 
             for team in teams:
                 if not isinstance(team, dict):
@@ -343,7 +413,7 @@ class HandballNetAPI:
                         return self.utils.normalize_logo_url(logo_url)
         return None
 
-    async def get_team_table_position(self, team_id: str, tournament_id: str) -> Optional[Dict[str, Any]]:
+    async def get_team_table_position(self, team_id: str, tournament_id: str | int) -> Optional[Dict[str, Any]]:
         """Get team position in league table"""
         table_data = await self.get_league_table(tournament_id)
         if not table_data:
@@ -352,7 +422,7 @@ class HandballNetAPI:
 
         return self._find_team_in_table(table_data, team_id, tournament_id)
 
-    def _find_team_in_table(self, table_data: Any, team_id: str, tournament_id: str) -> Optional[Dict[str, Any]]:
+    def _find_team_in_table(self, table_data: Any, team_id: str, tournament_id: str | int) -> Optional[Dict[str, Any]]:
         """Find team in league table data"""
         rows = self._extract_table_rows(table_data)
         if not rows:

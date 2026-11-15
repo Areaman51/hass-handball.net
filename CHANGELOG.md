@@ -1,5 +1,16 @@
 # Changelog
 
+## Lokal vorbereitet – Härtung vom 15. November 2026
+
+Noch nicht live installiert, veröffentlicht oder als Release verfügbar. Lokale Gesamtprüfungen und unabhängige Nachreviews sind abgeschlossen; dies ersetzt keine Liveabnahme oder Releasefreigabe. Der bisherige veröffentlichte Entwicklungsstand folgt darunter unverändert.
+
+- Legacy-HTTP erhält expliziten Timeout und Redirect-Verbot; Bootstrap-/API-Antworten werden begrenzt gelesen.
+- Listen-/Seitenvalidierung, gemeinsame Requestslots und begrenzte Worker verhindern unbegrenzte Pagination und Task-Fan-outs. Kumulative dekomprimierte Bytebudgets, UTF-8-Feldgrenzen und größenbegrenzte Caches ergänzen die Einzelantwortlimits; Turnierarbeitsgrenzen greifen auch vor weiteren Unterabfragen und bei Cachetreffern. Grenzverletzungen sind Fehler statt erfolgreicher Teilergebnisse.
+- Erlaubte fehlende Spieltermine lösen weder in der Live-Erkennung noch beim Turniersortieren einen Updatefehler aus.
+- Logo-Uploads prüfen Pfadkomponenten und Hashziele deskriptorrelativ ohne Symlink-Fallback; bestehende Grafiken werden nicht überschrieben oder gelöscht. Bei Upload-Abbruch bleibt die Serialisierung bis zum tatsächlichen Executor-/Upload-Cleanup erhalten.
+- Release-Tag über explizite Umgebungsvariable und validierten stdlib-Pakethelfer verarbeiten, Manifest als JSON ändern. Actionversionen auf überprüfte Commit-IDs pinnen und Checkout-Zugangsdaten nicht persistieren.
+- Konkrete Grenzen, Kompatibilität und Prüfungen: [Lokale Härtung](docs/sicherheit-haertung.md). Keine behauptete Bereinigung der geerbten Git-Historie und kein vollständiger Produktionsaudit.
+
 ## 0.0.32.dev0 – Community-Entwicklungsstand auf main, noch kein Fork-Release
 
 Dieser Abschnitt beschreibt den zusammengeführten Entwicklungsstand des Forks **Areaman51/hass-handball.net**, kein veröffentlichtes Release und keine vollständige Releaseabnahme. Die folgenden älteren Abschnitte bleiben als ursprüngliche Änderungshistorie erhalten. Insbesondere ist die historische Löschanweisung unter v0.0.29 **nicht** die aktuelle Anleitung zum Fork-Wechsel: bestehende HA-Konfigurationseinträge erhalten; siehe [Installation und Rollback](docs/installation-und-umstieg.md).
