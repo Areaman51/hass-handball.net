@@ -14,6 +14,14 @@ Lokale Implementierung, Parent-Gesamtprüfungen und unabhängige Nachreviews abg
 - Bandit ohne Scanfehler und ohne High-/Medium-Treffer; zwei Low-Kandidaten im HTTP-Client sind weiterhin der interne Token-Cache-Schlüssel und eine feste öffentliche Bootstrap-Adresse, keine Kennwörter.
 - Grenzen und Verhalten bei Überschreitung sowie Upload-Kompatibilität: [Härtung und Live-Abnahme](sicherheit-haertung.md). Der gezielte Backendpilot ist keine vollständige Marketplace-/Migrations- oder Releaseabnahme.
 
+## Distributionsprüfung – benutzerdefinierte Quelle
+
+Ein Vorabtest nutzte den echten eingebauten Installer von HA2026.11.1 gegen den zuvor öffentlichen Stand: vollständiger Download ohne Dateikopieren, erfolgreiche native Team-/Vereinskonfiguration mit echten öffentlichen Anbieterdaten, frischer HA-Prozess mit erhaltenem Eintrag und automatischer Einbindung aller drei Karten. Keine manuellen Dashboard-Ressourcen. Das ist ein nativer Installer-/Runtime-Nachweis, kein vollständiger visueller UI-/OAuth-Durchlauf: ohne Marketplace-GitHub-Verbindung wurde das Hinzufügen über die UI-WebSocket-API erwartungsgemäß abgewiesen; die isolierte Prüfung registrierte die öffentliche Quelle über die niedrigere native Manager-API und benutzte danach den echten Installerhandler. Der Bezug des endgültig veröffentlichten Härtungsstands bleibt ein eigener nachgelagerter Nachweis, nicht aus dem Vorabtest abgeleitet.
+
+Die ersten echten GitHub-Validierungen fanden fehlende Repository-Themen und eine überflüssige Manifest-Requirement-Deklaration von `aiohttp`. Themen wurden ergänzt, der doppelte Core-Paketeintrag entfernt; Python-/Kartencode blieb unverändert. Die Korrektur ist mit zuerst roter, danach grüner Metadatenregression belegt. Danach lokal **392 Python-Tests** sowie der native Vier-Schritte-Logo-Smoke bestanden. Das ist kein behaupteter grüner Remote-CI-Status; dieser ist am endgültigen Commit separat zu prüfen.
+
+Der vollständige Wechsel einer bestehenden Originalquelle, Domainbesitzübernahme und visuelle Clientabnahme sind dadurch weiterhin nicht geprüft.
+
 ## Zentrale Logo-Verwaltung – 12. November 2026
 
 - `python -m pytest -q`: **155 bestanden** mit der Stub-Testumgebung.

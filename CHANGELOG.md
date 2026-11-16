@@ -11,6 +11,7 @@ Lokale Gesamtprüfungen und unabhängige Nachreviews sind abgeschlossen. Die sec
 - Release-Tag über explizite Umgebungsvariable und validierten stdlib-Pakethelfer verarbeiten, Manifest als JSON ändern. Actionversionen auf überprüfte Commit-IDs pinnen und Checkout-Zugangsdaten nicht persistieren.
 - Konkrete Grenzen, Kompatibilität und Prüfungen: [Lokale Härtung](docs/sicherheit-haertung.md). Keine behauptete Bereinigung der geerbten Git-Historie und kein vollständiger Produktionsaudit.
 - Automatische Installation als benutzerdefiniertes Repository ist der empfohlene Bezugsweg; kein Katalogantrag und kein separates Kartenpaket erforderlich. [Installationsanleitung](README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren). Kontrollierter Wechsel einer bestehenden Originalquelle bleibt eine getrennte, ungetestete Migration.
+- Distributionsmetadaten: den überflüssigen `aiohttp`-Eintrag aus den Manifest-Requirements entfernt; Home Assistant bringt dieses Paket bereits selbst mit und hassfest lehnt dessen doppelte Deklaration ab. Kein Python-/Kartencode geändert. Drei zusätzliche Metadatenregressionen sichern die Quelle ohne Release-Asset und die drei mitgelieferten Karten ab.
 
 ## 0.0.32.dev0 – Community-Entwicklungsstand auf main, noch kein Fork-Release
 
