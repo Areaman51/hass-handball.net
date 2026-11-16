@@ -197,10 +197,10 @@ async def test_concurrent_stale_rejections_share_refresh_even_when_late(transpor
         assert request.headers["x-client-token"] == "stale"
         count += 1
         index = count
-        if count == 6:
+        if count == 4:
             all_stale.set()
         await all_stale.wait()
-        if index == 6:
+        if index == 4:
             await fresh_seen.wait()
         return web.json_response({"code": "CLIENT_TOKEN_EXPIRED"}, status=403)
 
@@ -209,12 +209,12 @@ async def test_concurrent_stale_rejections_share_refresh_even_when_late(transpor
         fresh_seen.set()
         return web.json_response({"data": {"name": "Test"}})
 
-    for _ in range(6):
+    for _ in range(4):
         transport.replies["/api/new/teams/test"].append(reject_stale)
-    for _ in range(6):
+    for _ in range(4):
         transport.replies["/api/new/teams/test"].append(accept_fresh)
     results = await asyncio.wait_for(
-        asyncio.gather(*(fetch(transport) for _ in range(6)), return_exceptions=True), timeout=3
+        asyncio.gather(*(fetch(transport) for _ in range(4)), return_exceptions=True), timeout=3
     )
     assert all(result == {"data": {"name": "Test"}} for result in results), results
     assert [path for path, _, _ in transport.requests].count("/") == 1

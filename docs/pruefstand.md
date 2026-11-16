@@ -2,6 +2,26 @@
 
 Stand: **12. November 2026**. Dieser Prüfstand umfasst die Sicherheits-/API-Basis, individuelle Logoquellen, zentrale Logo-Verwaltung und größere Nächstes-Spiel-Logos. Nach isolierten Prüfungen wurde ein gezielter Backend-/Karteneinbau in einer HA-2026.11.1-Pilotinstallation mit bestehenden Einträgen geprüft und vom Nutzer abgenommen. Kein vollständiger Marketplace-/HACS-Quellenwechsel und keine vollständige Releaseabnahme.
 
+## Härtung und gezielter Live-Pilot – 15./16. November 2026
+
+Lokale Implementierung, Parent-Gesamtprüfungen und unabhängige Nachreviews abgeschlossen. Das erste HTTP-Nachreview fand trotz grüner Tests eine Cache-Regression bei numerischen Phasen-IDs; der gezielte zweite Fix ist unabhängig nachgeprüft und geschlossen. Anschließend sechs Laufzeitpfade nach Sicherung mit genau einem genehmigten Core-Neustart gezielt in HA2026.11.1 aktiviert und alle Quelldateien zurückgelesen. Bestehende Einträge, reguläre Daten, Optionen, Dashboards und Logos erhalten; eigene Nutzeransicht am 16. November bestätigt. Kein bestätigter offener Sicherheits-/Logikblocker im geprüften Umfang; keine vollständige Sicherheitsgarantie, Quellenmigration oder stabile Releasefreigabe.
+
+- Erster eingefrorener Gesamtexport vor Reviewkorrekturen: **337 Python- und 144 Node-Tests bestanden**. Nach den Korrekturen im zusammengeführten Arbeitsstand vom Parent erneut **371 Python- und 144 Node-Tests bestanden**. Die ursprünglichen 155 Python-Tests wurden vor der Umsetzung separat als unveränderte Baseline ausgeführt; Fehlerkorrekturen sind mit echten Rot-/Grün-Läufen belegt.
+- Abschließender eingefrorener Gesamtstand nach dem Identifierfix: **389 Stub- und 144 Node-Tests bestanden**, vom Parent selbst ausgeführt. Originale String-/Integer-IDs bleiben erhalten; native Team-/Club-Folgeupdates behalten Tabellenplätze und nutzen den Cache.
+- Nativer HA-2026.11.1-Logo-Smoke: **vier Prüfschritte bestanden**, einschließlich Upload, HTTP-Bildauslieferung, Persistenz und sofortiger Verteilung an vier Sensorquellen. Zusätzlich HTTP-/Pagination-/Fan-out-Tests unter echter HA-Umgebung; die native Umgebung ist keine produktive Instanz.
+- Abschließend **202 native HTTP-Zieltests bestanden** (184 vor den neuen Identifierfällen); nach Upload-Korrektur zusätzlich **sechs native Cancellationtests bestanden**. Ein zusätzlicher nativer Gesamtlauf aller Stub-Tests ist wegen Logo-/Options-Fixtures mit Stubannahmen nicht grün; diese gezielten nativen Ergebnisse sind keine vollständige native Gesamtsuite.
+- Ruff E9/F63/F7/F82, JS-Syntax und lokale Actionlint-/ShellCheck-Prüfungen bestanden. Kein Anspruch auf grünes vollständiges Ruff-Regelwerk oder erfolgreiche GitHub-CI.
+- Bandit ohne Scanfehler und ohne High-/Medium-Treffer; zwei Low-Kandidaten im HTTP-Client sind weiterhin der interne Token-Cache-Schlüssel und eine feste öffentliche Bootstrap-Adresse, keine Kennwörter.
+- Grenzen und Verhalten bei Überschreitung sowie Upload-Kompatibilität: [Härtung und Live-Abnahme](sicherheit-haertung.md). Der gezielte Backendpilot ist keine vollständige Marketplace-/Migrations- oder Releaseabnahme.
+
+## Distributionsprüfung – benutzerdefinierte Quelle
+
+Ein Vorabtest nutzte den echten eingebauten Installer von HA2026.11.1 gegen den zuvor öffentlichen Stand: vollständiger Download ohne Dateikopieren, erfolgreiche native Team-/Vereinskonfiguration mit echten öffentlichen Anbieterdaten, frischer HA-Prozess mit erhaltenem Eintrag und automatischer Einbindung aller drei Karten. Keine manuellen Dashboard-Ressourcen. Das ist ein nativer Installer-/Runtime-Nachweis, kein vollständiger visueller UI-/OAuth-Durchlauf: ohne Marketplace-GitHub-Verbindung wurde das Hinzufügen über die UI-WebSocket-API erwartungsgemäß abgewiesen; die isolierte Prüfung registrierte die öffentliche Quelle über die niedrigere native Manager-API und benutzte danach den echten Installerhandler. Der Bezug des endgültig veröffentlichten Härtungsstands bleibt ein eigener nachgelagerter Nachweis, nicht aus dem Vorabtest abgeleitet.
+
+Die ersten echten GitHub-Validierungen fanden fehlende Repository-Themen und eine überflüssige Manifest-Requirement-Deklaration von `aiohttp`. Themen wurden ergänzt, der doppelte Core-Paketeintrag entfernt; Python-/Kartencode blieb unverändert. Die Korrektur ist mit zuerst roter, danach grüner Metadatenregression belegt. Danach lokal **392 Python-Tests** sowie der native Vier-Schritte-Logo-Smoke bestanden. Das ist kein behaupteter grüner Remote-CI-Status; dieser ist am endgültigen Commit separat zu prüfen.
+
+Der vollständige Wechsel einer bestehenden Originalquelle, Domainbesitzübernahme und visuelle Clientabnahme sind dadurch weiterhin nicht geprüft.
+
 ## Zentrale Logo-Verwaltung – 12. November 2026
 
 - `python -m pytest -q`: **155 bestanden** mit der Stub-Testumgebung.

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -9,8 +8,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from . import http_client
 from .api import HandballNetAPI
-from .http_client import HandballNetHTTPError
 from .const import (
     CONF_ENTITY_TYPE,
     CONF_TEAM_ID,
@@ -21,11 +20,13 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL_LIVE,
     DOMAIN,
-    HEALTH_CHECK_STALE_HOURS,
     ENTITY_TYPE_CLUB,
     ENTITY_TYPE_TEAM,
     ENTITY_TYPE_TOURNAMENT,
+    HEALTH_CHECK_STALE_HOURS,
 )
+from .http_client import HandballNetHTTPError
+from .resource_limits import MAX_RECORDS, async_bounded_map, match_work_budget
 from .utils import HandballNetUtils
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,6 +77,14 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return []
 
     async def _async_update_data(self) -> dict[str, Any]:
+        with http_client.response_budget(http_client.MAX_OPERATION_BYTES):
+            try:
+                return await self._async_update_data_limited()
+            except HandballNetHTTPError as err:
+                message = f"Could not fetch update data: {err}"
+                raise UpdateFailed(message) from err
+
+    async def _async_update_data_limited(self) -> dict[str, Any]:
         self._reset_perf_snapshot()
         update_started = time.perf_counter()
         if self._entity_type == ENTITY_TYPE_TOURNAMENT:
@@ -94,11 +103,8 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return result
 
         teams_fetch_started = time.perf_counter()
-        team_results = await asyncio.gather(
-            *(
-                self._load_team_bucket(team_id, team_name)
-                for team_id, team_name in self._team_items
-            ),
+        team_results = await async_bounded_map(
+            lambda item: self._load_team_bucket(*item), self._team_items,
             return_exceptions=True,
         )
         self._log_perf(
@@ -126,6 +132,7 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._live_interval if is_live else self._standard_interval
         )
 
+        http_client.check_response_budget("update", completed=True)
         for team_id, team_bucket in teams.items():
             self._store_team_bucket(team_id, team_bucket)
 
@@ -164,6 +171,7 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "team_positions": {},
                 "matches": [],
             }
+            http_client.check_response_budget("update", completed=True)
             self._store_tournament_bucket(tournament_bucket)
             self._log_perf(
                 "tournament_update_total",
@@ -205,6 +213,7 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "matches": matches,
         }
 
+        http_client.check_response_budget("update", completed=True)
         self._store_tournament_bucket(tournament_bucket)
         result = {
             "entity_type": self._entity_type,
@@ -224,9 +233,9 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _load_team_bucket(self, team_id: str, team_name: str) -> dict[str, Any]:
         team_started = time.perf_counter()
-        schedule_result, team_info_result = await asyncio.gather(
-            self._api.get_team_schedule(team_id),
-            self._api.get_team_info(team_id),
+        schedule_result, team_info_result = await async_bounded_map(
+            lambda fetch: fetch(team_id),
+            [self._api.get_team_schedule, self._api.get_team_info],
             return_exceptions=True,
         )
 
@@ -258,9 +267,10 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         live_matches = self._get_live_matches(sorted_matches)
         tournament_id = self._find_tournament_id(sorted_matches, team_info)
-        live_events, table_position = await asyncio.gather(
-            self._load_live_events(live_matches),
-            self._load_table_position(team_id, tournament_id),
+        live_events, table_position = await async_bounded_map(
+            lambda fetch: fetch(),
+            [lambda: self._load_live_events(live_matches),
+             lambda: self._load_table_position(team_id, tournament_id)],
         )
         health = self._build_health_data(
             sorted_matches,
@@ -487,9 +497,10 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return [
             match
             for match in matches
-            if match.get("startsAt", 0) / 1000
+            if isinstance(match.get("startsAt"), int)
+            and match["startsAt"] / 1000
             <= now_ts
-            <= match.get("startsAt", 0) / 1000 + 7200
+            <= match["startsAt"] / 1000 + 7200
         ]
 
     def _get_next_match(self, matches: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -679,11 +690,14 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if isinstance(row, dict) and row.get("team", {}).get("id")
         ]
         unique_team_ids = list(dict.fromkeys(row_team_ids))
+        # Reject before any optional logo/team-info subrequests are started.
+        if len(unique_team_ids) > 256:
+            raise UpdateFailed("Tournament participant team limit exceeded")
         team_info_map: dict[str, dict[str, Any] | None] = {}
 
         if unique_team_ids:
-            team_results = await asyncio.gather(
-                *(self._api.get_team_info(team_id) for team_id in unique_team_ids),
+            team_results = await async_bounded_map(
+                self._api.get_team_info, unique_team_ids,
                 return_exceptions=True,
             )
             for team_id, result in zip(unique_team_ids, team_results, strict=False):
@@ -735,6 +749,7 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return formatted_rows
 
+    @http_client.operation_limited
     async def _fetch_tournament_matches(
         self,
         table_rows: list[dict[str, Any]],
@@ -758,28 +773,29 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         processed_team_ids: set[str] = set()
         unique_matches: dict[str, dict[str, Any]] = {}
         max_teams = 256
+        if len(known_team_ids) > max_teams:
+            raise UpdateFailed("Tournament participant team limit exceeded")
 
-        while pending_team_ids and len(processed_team_ids) < max_teams:
-            batch_team_ids = [
-                team_id for team_id in pending_team_ids if team_id not in processed_team_ids
-            ]
-            pending_team_ids.clear()
-            if not batch_team_ids:
-                break
-
-            schedule_results = await asyncio.gather(
-                *(self._api.get_team_schedule(team_id) for team_id in batch_team_ids),
-                return_exceptions=True,
-            )
-
-            for team_id, matches_result in zip(
-                batch_team_ids, schedule_results, strict=False
-            ):
-                processed_team_ids.add(team_id)
-                if isinstance(matches_result, Exception):
+        inspected_records = 0
+        with match_work_budget() as work:
+            async def collect_team(team_id: str) -> None:
+                nonlocal inspected_records
+                # Completed work is checked before assigning the next item, not
+                # after materializing an entire participant wave. The API charges
+                # the same shared work budget before extending pages/caching.
+                if inspected_records >= MAX_RECORDS:
+                    raise UpdateFailed("Tournament match record limit exceeded")
+                try:
+                    work.check_start()
+                    matches_result = await self._api.get_team_schedule(team_id)
+                except HandballNetHTTPError as err:
                     raise UpdateFailed(
-                        f"Could not get tournament matches for team {team_id}: {matches_result}"
-                    ) from matches_result
+                        f"Could not get tournament matches for team {team_id}: {err}"
+                    ) from err
+                processed_team_ids.add(team_id)
+                inspected_records += len(matches_result or [])
+                if inspected_records > MAX_RECORDS:
+                    raise UpdateFailed("Tournament match record limit exceeded")
 
                 for match in matches_result or []:
                     match_id = match.get("id")
@@ -789,13 +805,11 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     tournament_data = match.get("tournament", {})
                     match_tournament_id = tournament_data.get("id")
                     match_tournament_name = tournament_data.get("name", "")
-                    # Match data delivers the phase id as int, the config entry
-                    # stores it as str - compare as strings.
+                    # API phase ids are ints; config entries store strings.
                     is_target_tournament = (
                         match_tournament_id is not None
                         and str(match_tournament_id) == str(self._tournament_id)
                     )
-
                     if (
                         not is_target_tournament
                         and not match_tournament_id
@@ -803,28 +817,38 @@ class HandballDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         and match_tournament_name == target_tournament_name
                     ):
                         is_target_tournament = True
-
                     if not is_target_tournament:
                         continue
 
                     unique_matches[match_id] = match
+                    if len(unique_matches) > MAX_RECORDS:
+                        raise UpdateFailed("Tournament match record limit exceeded")
 
                     for participant in (
                         match.get("homeTeam", {}),
                         match.get("awayTeam", {}),
                     ):
                         participant_id = participant.get("id")
-                        if (
-                            participant_id
-                            and participant_id not in known_team_ids
-                            and len(known_team_ids) < max_teams
-                        ):
+                        if participant_id and participant_id not in known_team_ids:
+                            if len(known_team_ids) >= max_teams:
+                                raise UpdateFailed("Tournament participant team limit exceeded")
                             known_team_ids.add(participant_id)
                             pending_team_ids.add(participant_id)
 
+            while pending_team_ids:
+                batch_team_ids = [
+                    team_id for team_id in pending_team_ids if team_id not in processed_team_ids
+                ]
+                pending_team_ids.clear()
+                if not batch_team_ids:
+                    break
+                # Each worker consumes/validates results before taking another
+                # team; failures cancel and await siblings, retaining no waves.
+                await async_bounded_map(collect_team, batch_team_ids)
+
         return self._extract_essential_match_data(
             "",
-            sorted(unique_matches.values(), key=lambda item: item.get("startsAt", 0)),
+            sorted(unique_matches.values(), key=lambda item: item.get("startsAt") or 0),
         )
 
     def _store_team_bucket(self, team_id: str, team_bucket: dict[str, Any]) -> None:

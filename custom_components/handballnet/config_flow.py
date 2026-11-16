@@ -1,26 +1,34 @@
-import asyncio
+
+import re
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import config_validation as cv
-import re
-from .http_client import HandballNetHTTPError, async_get_json
+
 from .const import (
-    DOMAIN,
     CONF_CLUB_ID,
+    CONF_ENTITY_TYPE,
     CONF_FEDERATION_ID,
     CONF_TEAM_ID,
     CONF_TEAM_MAPPING,
     CONF_TOURNAMENT_ID,
-    CONF_ENTITY_TYPE,
-    ENTITY_TYPE_TEAM,
-    ENTITY_TYPE_CLUB,
-    ENTITY_TYPE_TOURNAMENT,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
     CONF_UPDATE_INTERVAL_LIVE,
+    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL_LIVE,
+    DOMAIN,
+    ENTITY_TYPE_CLUB,
+    ENTITY_TYPE_TEAM,
+    ENTITY_TYPE_TOURNAMENT,
     HANDBALL_NET_NEW_API_BASE_URL,
     HANDBALL_NET_WEB_URL,
+)
+from .http_client import HandballNetHTTPError, async_get_json, sequence_limited
+from .resource_limits import (
+    async_bounded_map,
+    validate_fields,
+    validate_last_page,
+    validate_records,
 )
 
 # Gender ids as returned by the new /api/new API
@@ -219,6 +227,13 @@ class HandballNetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Get JSON data from a new (/api/new) handball.net API path."""
         try:
             payload = await async_get_json(self.hass, path, params, referer)
+            if payload and payload.get("success"):
+                if path.startswith("teams/") and path != "teams/clubs":
+                    if not isinstance(payload.get("data"), dict):
+                        raise HandballNetHTTPError(200, path, "invalid team record")
+                    validate_fields(payload["data"], path)
+                else:
+                    validate_records(payload, path)
         except HandballNetHTTPError as err:
             self._last_http_status = err.status or -1
             return None
@@ -235,6 +250,7 @@ class HandballNetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return "api_blocked"
         return not_found_key
 
+    @sequence_limited
     async def _api_get_new_paginated(
         self, path: str, params: dict, referer: str
     ) -> list:
@@ -248,12 +264,16 @@ class HandballNetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 path, {**params, "page": page}, referer
             )
             if not payload:
-                break
-
-            results.extend(payload.get("data", []) or [])
-
-            pagination = payload.get("pagination") or {}
-            last_page = pagination.get("last_page", last_page) or last_page
+                # A failed page is never a complete (possibly empty) lookup.
+                self._last_http_status = self._last_http_status or -1
+                return []
+            try:
+                records = validate_records(payload, path, count=len(results))
+                last_page = validate_last_page(payload, path, last_page)
+            except HandballNetHTTPError as err:
+                self._last_http_status = err.status or -1
+                return []
+            results.extend(records)
             page += 1
 
         return results
@@ -555,8 +575,8 @@ class HandballNetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if team_options:
             team_ids = list(team_options.keys())
-            league_names = await asyncio.gather(
-                *(self._get_team_league_name(team_id) for team_id in team_ids),
+            league_names = await async_bounded_map(
+                self._get_team_league_name, team_ids,
                 return_exceptions=True,
             )
             for team_id, league_name in zip(team_ids, league_names):

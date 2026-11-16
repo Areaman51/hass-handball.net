@@ -8,7 +8,22 @@ Dokumentiert ist die Entwicklungsversion **0.0.32.dev0 auf main** im Repository 
 
 Die Domain bleibt **`handballnet`**. Original und Fork schreiben in denselben Komponentenordner und bedienen dieselben Konfigurationseinträge. Sie sind **Alternativen, keine parallel installierbaren Integrationen**. Ein anderer Ordnername macht daraus keine zweite unabhängige Integration.
 
-Der manuelle Dateiaustausch ist der nachvollziehbarere Weg für diesen Source-Stand. Auch er ist keine pauschale Migrationsgarantie. Der HACS-Repositorywechsel wurde **noch nicht real getestet**.
+**Empfohlen ist die automatische Installation als benutzerdefiniertes Repository.** Eine Standardkatalog-Aufnahme ist nicht erforderlich. Kein ZIP-Download, Dateikopieren, separates Kartenrepository oder manueller Ressourcen-Eintrag gehört zu diesem normalen Weg. Der kontrollierte Wechsel einer bestehenden Originalquelle ist davon getrennt und wurde **noch nicht real getestet**.
+
+## Automatische Neuinstallation als benutzerdefiniertes Repository
+
+Für Home Assistant ab 2026.11 ist der Marketplace bereits eingebaut; HACS muss nicht separat installiert werden. Vollständige Schritte und direkter Button: [Hauptanleitung](../README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren).
+
+1. **Einstellungen → Marketplace** öffnen und bei Bedarf den Hinweis für Community-Inhalte bestätigen.
+2. **Aus Link hinzufügen** wählen und `https://github.com/Areaman51/hass-handball.net` angeben; Kategorie **Integration**, falls abgefragt. Alternativ den My-Home-Assistant-Button in der Hauptanleitung benutzen.
+3. Die angebotene GitHub-Verbindung über die Oberfläche herstellen, falls noch nicht vorhanden. Kein persönliches handball.net-Passwort und kein Token in einer YAML-Datei sind dafür nötig.
+4. Quelle hinzufügen und auf der Repositoryseite **Installieren** wählen. Der Marketplace lädt den Inhalt selbst und legt die Integration an der richtigen Stelle ab.
+5. Einen gegebenenfalls angeforderten Home-Assistant-Neustart ausführen; nach Integrationsupdates neu starten und den Client neu laden.
+6. Die Integration unter **Einstellungen → Geräte & Dienste** einrichten. Gewünschte Dashboardkarten mit den tatsächlichen Entitäten konfigurieren. Die mitgelieferten JS-Karten werden vom Backend automatisch eingebunden; keine zusätzlichen Kartendateien oder Ressourcen installieren.
+
+Ohne GitHub-Release wird der aktuelle Standardbranch bezogen; der vorliegende Stand bleibt eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. [Offizielle Bedienung](https://www.home-assistant.io/integrations/marketplace/) und [Versionsauswahl](https://contributors.home-assistant.io/marketplace/how-it-works/) erklären die Plattformdetails. Praktische Testgrenzen stehen getrennt im [Prüfstand](pruefstand.md); direkte native Installeraufrufe sind keine behauptete vollständige Browserabnahme.
+
+**Bei einer schon vorhandenen Originalinstallation hier stoppen und zuerst die folgenden Wechselhinweise lesen.** Nicht auf Verdacht die HA-Integration, deren Einträge oder Geräte löschen.
 
 ## Vor jedem Wechsel: Wiederherstellung vorbereiten
 
@@ -21,6 +36,8 @@ Der manuelle Dateiaustausch ist der nachvollziehbarere Weg für diesen Source-St
 **Nicht tun:** Integration oder Config-Entries in „Geräte & Dienste“ löschen; `.storage` bearbeiten; Geräte vorsorglich entfernen; Original und Fork gleichzeitig installieren. Eine Sicherung des Komponentenordners allein stellt gelöschte Registrierungen nicht wieder her.
 
 ## Neue manuelle Installation
+
+**Nur Ausweichweg für Entwicklung oder eine nicht verfügbare Automatikroute.** Für eine normale Neuinstallation den benutzerdefinierten Repositoryweg oben verwenden.
 
 1. Im Fork den Branch `main` auswählen und das Source-Archiv über GitHub herunterladen. Für eine reproduzierbare Installation den konkreten Commit festhalten; `main` kann sich ändern.
 2. Entpacken. Im Archiv den Ordner `custom_components/handballnet` suchen.
@@ -42,9 +59,9 @@ Ein Source-Archiv des Repositories ist nicht dasselbe wie das frühere Integrati
 
 ## Marketplace-/HACS-Route: Quellenwechsel weiterhin ungetestet
 
-Ab Home Assistant 2026.11 ist der Marketplace eingebaut. Der Fork kann dort als benutzerdefiniertes Repository über den [My-Link in der Hauptanleitung](../README.md#marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet) angeboten werden. Dafür ist eine GitHub-Verbindung erforderlich; eine benutzerdefinierte Quelle ist nicht dasselbe wie eine Aufnahme in den gemeinsamen Katalog.
+Ab Home Assistant 2026.11 ist der Marketplace eingebaut. Der Fork wird als benutzerdefiniertes Repository über den [My-Link in der Hauptanleitung](../README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren) angeboten. Dafür ist eine GitHub-Verbindung erforderlich; eine benutzerdefinierte Quelle ist nicht dasselbe wie eine Aufnahme in den gemeinsamen Katalog. Für Neuinstallationen gilt die automatische Route oben; dieser Abschnitt betrifft den getrennten Quellenwechsel.
 
-Repository-Adresse: `https://github.com/Areaman51/hass-handball.net`, Kategorie **Integration**. Ohne vollständiges GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches; der vorliegende Stand ist daher ausdrücklich eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. Die tatsächliche Marketplace-Neuinstallation beziehungsweise Migration ist bislang nicht praktisch abgenommen; die manuelle Source-Route bleibt getrennt beschrieben.
+Repository-Adresse: `https://github.com/Areaman51/hass-handball.net`, Kategorie **Integration**. Ohne vollständiges GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches; der vorliegende Stand ist daher ausdrücklich eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. Ein automatischer Neuinstallationsnachweis ist keine praktische Migrationsabnahme; die manuelle Source-Route bleibt ausdrücklich ein Ausweichweg.
 
 Bei einem bereits über Marketplace/HACS verwalteten Original kann der bestehende Besitzer derselben Domain `handballnet` eine zweite Quelle blockieren. Deshalb:
 

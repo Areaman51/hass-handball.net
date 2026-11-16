@@ -58,6 +58,8 @@ Vor Backend-Updates die bisherige Integration und die HA-Konfiguration einschlie
 
 ## Fehlerfälle
 
+**Lokaler Härtungskandidat vom 15. November 2026:** Künftige Uploads folgen unterhalb des vertrauenswürdigen HA-Konfigverzeichnisses keinen Symlinks in `www/handballnet/logos` und akzeptieren vorhandene Hashziele nur als begrenzte reguläre Dateien mit passendem Inhalt. Auf nicht unterstützten Plattformen gibt es keinen unsicheren Pfad-Fallback. Bewusst per Symlink umgeleitete `www`-/Unterverzeichnisse können daher neue Uploads verhindern; vor einem Update prüfen, nicht automatisch verschieben oder löschen. Bestehende Bildzuordnungen und sichere externe Bildadressen bleiben unverändert. Dieser Kandidat ist noch nicht live ausgerollt; siehe [Umfang und Restgrenzen](sicherheit-haertung.md).
+
 Bei Speicherfehlern bestätigt der Dialog die Änderung nicht. Speicherplatz und HA-Protokoll prüfen; beschädigte bestehende Logo-Daten werden nicht still durch eine leere Zuordnung überschrieben. Eine nicht ladbare optionale Logo-Verwaltung soll die übrigen Handballdaten nicht abschalten; diese verwenden dann weiter die API-Logos. Der Fehler bleibt protokolliert und muss gezielt behoben werden.
 
 Nach einem fehlgeschlagenen Upload muss eine Datei gegebenenfalls erneut ausgewählt werden, weil HA temporäre Uploads nach der Verarbeitung entfernt. Eine erfolgreich bestätigte Logoänderung benötigt weder eine neue handball.net-Abfrage noch das Löschen oder Neueinrichten der Integration.

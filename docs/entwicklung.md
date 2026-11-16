@@ -101,9 +101,9 @@ Konfigurationsschlüssel und Attributverträge müssen an diesen Implementierung
 
 ## GitHub-Workflows: keine pytest-/Node-Abdeckung
 
-Die vorhandenen Workflows umfassen HACS-Validierung, hassfest und einen Veröffentlichungsworkflow für Release-Assets. **Sie führen pytest und die Node-Tests derzeit nicht aus.** Ein grüner HACS-/hassfest-Status ist weder Unit-Testnachweis noch HACS-Umstiegsabnahme.
+Die vorhandenen Workflows umfassen HACS-Validierung, hassfest und einen Veröffentlichungsworkflow für Release-Assets. **Sie führen pytest und die Node-Tests derzeit nicht aus.** Ein grüner HACS-/hassfest-Status ist weder Unit-Testnachweis noch HACS-Umstiegsabnahme. Der lokale Härtungskandidat vom 15. November 2026 pinnt die Actions auf überprüfte Commit-IDs, deaktiviert persistierte Checkout-Zugangsdaten und verarbeitet den Release-Tag über eine explizite Umgebungsvariable statt als Shellquelltext. Das ist noch keine Remote-CI-Abnahme; siehe [Härtungsstand](sicherheit-haertung.md).
 
-Der Veröffentlichungsworkflow reagiert auf veröffentlichte Releases. Seine Existenz bedeutet nicht, dass `0.0.32.dev0` bereits als Release verfügbar wäre. Für die jetzige Source-Installation ist `zip_release: false` vorgesehen. Die vorhandenen Workflows bleiben unverändert; pytest und Node-Tests werden lokal ausgeführt. Eine automatische Regressionstest-Pipeline ist damit nicht eingerichtet.
+Der Veröffentlichungsworkflow reagiert auf veröffentlichte Releases. Seine Existenz bedeutet nicht, dass `0.0.32.dev0` bereits als Release verfügbar wäre. Für die jetzige Source-Installation ist `zip_release: false` vorgesehen. Im lokalen Härtungskandidaten baut `scripts/release_package.py` das bisherige ZIP-Asset nach strenger Tagprüfung und JSON-basierter Manifeständerung; `0.0.32.dev0` ist kein zulässiger Release-Tag. pytest und Node-Tests werden weiterhin lokal ausgeführt. Eine automatische Regressionstest-Pipeline ist damit nicht eingerichtet.
 
 ## Vor einer Veröffentlichung prüfen
 

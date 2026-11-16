@@ -8,13 +8,18 @@ log is not flooded by coordinator polling; recovery is logged at INFO.
 from __future__ import annotations
 
 import asyncio
-from html.parser import HTMLParser
+import codecs
+import json
 import logging
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from contextlib import asynccontextmanager, contextmanager
+from contextvars import ContextVar
+from functools import wraps
+from html.parser import HTMLParser
 from time import monotonic
 from typing import Any
 
 import aiohttp
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -23,6 +28,16 @@ from .const import HANDBALL_NET_NEW_API_BASE_URL, HANDBALL_NET_WEB_URL
 _LOGGER = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
+# Decompressed bytes, not the (possibly compressed or absent) Content-Length.
+# Allow large season histories while keeping HTML bootstrap much smaller.
+MAX_API_RESPONSE_BYTES = 8 * 1024 * 1024
+MAX_BOOTSTRAP_RESPONSE_BYTES = 2 * 1024 * 1024
+# One complete paginated lookup may consume at most one large-response budget.
+# An update (including all child teams/retries/bootstrap) gets twice that amount.
+MAX_SEQUENCE_BYTES = 8 * 1024 * 1024
+MAX_OPERATION_BYTES = 16 * 1024 * 1024
+MAX_CONCURRENT_REQUESTS = 4
+_REQUEST_SLOTS_DATA_KEY = "handballnet_request_slots"
 _BODY_EXCERPT = 300
 _TOKEN_TTL = 15 * 60
 _TOKEN_DATA_KEY = "handballnet_client_token"
@@ -51,6 +66,130 @@ class HandballNetHTTPError(Exception):
         self.status = status
         self.endpoint = endpoint
         self.reason = reason
+
+
+class _ResponseBudget:
+    def __init__(self, limit: int) -> None:
+        self.remaining = limit
+
+
+_response_budgets: ContextVar[tuple[_ResponseBudget, ...]] = ContextVar(
+    "handballnet_response_budgets", default=()
+)
+
+
+@contextmanager
+def response_budget(limit: int) -> Iterator[_ResponseBudget]:
+    """Count decompressed chunks across requests and inherited child tasks.
+
+    Nested page/operation budgets are both charged, without counting compressed
+    Content-Length or reserializing JSON. Counters are synchronous between awaits.
+    """
+    budget = _ResponseBudget(limit)
+    token = _response_budgets.set((*_response_budgets.get(), budget))
+    try:
+        yield budget
+    finally:
+        _response_budgets.reset(token)
+
+
+def sequence_limited(
+    function: Callable[..., Awaitable[Any]],
+) -> Callable[..., Awaitable[Any]]:
+    """Apply one cumulative input budget to a complete pagination coroutine."""
+    @wraps(function)
+    async def wrapped(*args: Any, **kwargs: Any) -> Any:
+        with response_budget(MAX_SEQUENCE_BYTES):
+            return await function(*args, **kwargs)
+    return wrapped
+
+
+def operation_limited(
+    function: Callable[..., Awaitable[Any]],
+) -> Callable[..., Awaitable[Any]]:
+    """Keep an entire fan-out operation within a shared input byte budget."""
+    @wraps(function)
+    async def wrapped(*args: Any, **kwargs: Any) -> Any:
+        with response_budget(MAX_OPERATION_BYTES):
+            return await function(*args, **kwargs)
+    return wrapped
+
+
+def check_response_budget(endpoint: str, *, completed: bool = False) -> None:
+    """Reject new requests at exhaustion and failed updates before publication."""
+    if any(budget.remaining < (0 if completed else 1) for budget in _response_budgets.get()):
+        raise HandballNetHTTPError(None, endpoint, "operation response byte limit exceeded")
+
+
+def request_slots(hass: HomeAssistant) -> asyncio.Semaphore:
+    """Share four in-flight HTTP requests across all clients of one HA instance.
+
+    Hold only during actual transport/body reading, never while waiting for the
+    token lock or refreshing a rejected token. Cancellation releases the slot.
+    """
+    return hass.data.setdefault(_REQUEST_SLOTS_DATA_KEY, asyncio.Semaphore(MAX_CONCURRENT_REQUESTS))
+
+
+@asynccontextmanager
+async def budgeted_request_slot(hass: HomeAssistant, endpoint: str) -> AsyncIterator[None]:
+    """Recheck admission after waiting: sibling workers share mutable counters."""
+    async with request_slots(hass):
+        check_response_budget(endpoint)
+        yield
+
+
+async def async_read_limited(
+    response: aiohttp.ClientResponse, limit: int, endpoint: str
+) -> bytes:
+    """Read at most limit + one decompressed byte; close on overflow.
+
+    aiohttp's response stream is already decompressed. Never call text/json/read
+    on the response afterwards: those would buffer the entire untrusted body.
+    """
+    body = bytearray()
+    while True:
+        budgets = _response_budgets.get()
+        read_size = min(
+            64 * 1024, limit + 1 - len(body),
+            *(max(1, budget.remaining + 1) for budget in budgets),
+        )
+        chunk = await response.content.read(read_size)
+        if not chunk:
+            return bytes(body)
+        for budget in budgets:
+            budget.remaining -= len(chunk)
+        if any(budget.remaining < 0 for budget in budgets):
+            response.close()
+            _log_failure(
+                endpoint, "aggregate-body-limit",
+                "handball.net cumulative response byte limit exceeded for %s", endpoint,
+            )
+            raise HandballNetHTTPError(
+                response.status, endpoint, "cumulative response byte limit exceeded"
+            )
+        body.extend(chunk)
+        if len(body) > limit:
+            response.close()
+            _log_failure(
+                endpoint, "body-limit", "handball.net response byte limit exceeded for %s", endpoint
+            )
+            raise HandballNetHTTPError(response.status, endpoint, "response byte limit exceeded")
+
+
+def decode_body(response: aiohttp.ClientResponse, body: bytes) -> str:
+    """Retain aiohttp's UTF-8 fallback for unrecognized charset names."""
+    try:
+        encoding = codecs.lookup(response.charset or "utf-8").name
+    except LookupError:
+        encoding = "utf-8"
+    return body.decode(encoding)
+
+
+async def _async_read_text(
+    response: aiohttp.ClientResponse, limit: int, endpoint: str
+) -> str:
+    body = await async_read_limited(response, limit, endpoint)
+    return decode_body(response, body)
 
 
 def _excerpt(text: str, tokens: tuple[str, ...] | list[str] = ()) -> str:
@@ -95,7 +234,7 @@ async def _async_get_token(
         token = state.get("token")
         # A different coordinator may already have replaced this rejected token.
         if (rejected_token is not None and token == rejected_token) or token is None or monotonic() >= state["expires_at"]:
-            async with session.get(
+            async with budgeted_request_slot(hass, endpoint), session.get(
                 _TOKEN_BOOTSTRAP_URL, headers={"User-Agent": _USER_AGENT},
                 timeout=REQUEST_TIMEOUT, allow_redirects=False
             ) as response:
@@ -108,8 +247,8 @@ async def _async_get_token(
                     raise HandballNetHTTPError(response.status, endpoint, "client-token bootstrap failed")
                 parser = _ClientTokenParser()
                 try:
-                    html = await response.text()
-                except UnicodeDecodeError:
+                    html = await _async_read_text(response, MAX_BOOTSTRAP_RESPONSE_BYTES, endpoint)
+                except (UnicodeError, LookupError):
                     _log_failure(
                         endpoint, "bootstrap-decode",
                         "handball.net client-token bootstrap failed for %s: response text decoding failed",
@@ -148,15 +287,15 @@ async def async_get_json(
         token = await _async_get_token(hass, session, endpoint)
         tokens.append(token)
         for attempt in range(2):
-            async with session.get(
+            async with budgeted_request_slot(hass, endpoint), session.get(
                 url, params=params,
                 headers={"Referer": referer, "x-client-token": token, "User-Agent": _USER_AGENT},
                 timeout=REQUEST_TIMEOUT, allow_redirects=False,
             ) as resp:
                 ray = _excerpt(resp.headers.get("cf-ray", "-"), tokens)
                 try:
-                    text = await resp.text()
-                except UnicodeDecodeError:
+                    text = await _async_read_text(resp, MAX_API_RESPONSE_BYTES, endpoint)
+                except (UnicodeError, LookupError):
                     _log_failure(
                         endpoint, f"decode-{resp.status}",
                         "handball.net API error: HTTP %s for %s: response text decoding failed",
@@ -186,8 +325,8 @@ async def async_get_json(
                         raise HandballNetHTTPError(resp.status, endpoint, f"HTTP {resp.status}: {hint}")
 
                     try:
-                        payload = await resp.json(content_type=None)
-                    except ValueError:
+                        payload = json.loads(text)
+                    except (ValueError, RecursionError):
                         _log_failure(
                             endpoint,
                             "no-json",
