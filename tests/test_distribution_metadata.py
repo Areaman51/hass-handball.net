@@ -9,6 +9,13 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components" / "handballnet"
 
 
+def test_release_manifest_version_matches_first_changelog_entry():
+    manifest = json.loads((COMPONENT / "manifest.json").read_text())
+    version = manifest["version"]
+    assert version.count(".") == 2 and all(part.isdigit() for part in version.split(".")), "Release manifest must use MAJOR.MINOR.PATCH without a dev suffix"
+    assert (ROOT / "CHANGELOG.md").read_text().splitlines()[2].startswith(f"## {version} –")
+
+
 def test_core_aiohttp_is_not_redeclared_in_custom_manifest():
     manifest = json.loads((COMPONENT / "manifest.json").read_text())
     requirements = {Requirement(item).name.lower() for item in manifest.get("requirements", [])}

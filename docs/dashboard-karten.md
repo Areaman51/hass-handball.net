@@ -17,7 +17,7 @@ Sie bindet die vorhandenen Dateien selbst über `add_extra_js_url` ein, mit eine
 Wenn „Custom element doesn't exist“ erscheint, zunächst Backend-Setup, vorhandene JS-Datei, Browser-Netzwerkfehler und Cache prüfen. Nur wenn die automatische Einbindung nicht funktioniert, die benötigte URL gezielt als Dashboard-Ressource vom Typ **JavaScript-Modul** testen. Beispielsweise für die Teamkarte:
 
 ```yaml
-url: /handballnet/handball-team-card.js?v=0.0.32.dev0
+url: /handballnet/handball-team-card.js?v=0.1.0
 type: module
 ```
 

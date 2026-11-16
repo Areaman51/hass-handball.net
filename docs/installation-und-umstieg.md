@@ -4,7 +4,7 @@
 
 ## Stand und Entscheidung
 
-Dokumentiert ist die Entwicklungsversion **0.0.32.dev0 auf main** im Repository **Areaman51/hass-handball.net**. Sie ist kein veröffentlichtes Fork-Release und hat keine vollständige Releaseabnahme. Eine gesicherte Testinstanz ist für erste Versuche vorzuziehen.
+Dokumentiert ist die reguläre Version **0.1.0**, Release-Tag **v0.1.0** im Repository **Areaman51/hass-handball.net**. `main` bleibt ein beweglicher Entwicklungsbranch. Der Release umfasst nicht automatisch eine vollständige Funktions-/Migrations-/Versionsmatrix; eine gesicherte Testinstanz ist für erste Versuche vorzuziehen.
 
 Die Domain bleibt **`handballnet`**. Original und Fork schreiben in denselben Komponentenordner und bedienen dieselben Konfigurationseinträge. Sie sind **Alternativen, keine parallel installierbaren Integrationen**. Ein anderer Ordnername macht daraus keine zweite unabhängige Integration.
 
@@ -17,11 +17,11 @@ Für Home Assistant ab 2026.11 ist der Marketplace bereits eingebaut; HACS muss 
 1. **Einstellungen → Marketplace** öffnen und bei Bedarf den Hinweis für Community-Inhalte bestätigen.
 2. **Aus Link hinzufügen** wählen und `https://github.com/Areaman51/hass-handball.net` angeben; Kategorie **Integration**, falls abgefragt. Alternativ den My-Home-Assistant-Button in der Hauptanleitung benutzen.
 3. Die angebotene GitHub-Verbindung über die Oberfläche herstellen, falls noch nicht vorhanden. Kein persönliches handball.net-Passwort und kein Token in einer YAML-Datei sind dafür nötig.
-4. Quelle hinzufügen und auf der Repositoryseite **Installieren** wählen. Der Marketplace lädt den Inhalt selbst und legt die Integration an der richtigen Stelle ab.
+4. Quelle hinzufügen und auf der Repositoryseite **Installieren** wählen; die reguläre Version **v0.1.0** verwenden. Der Marketplace lädt den Inhalt selbst und legt die Integration an der richtigen Stelle ab.
 5. Einen gegebenenfalls angeforderten Home-Assistant-Neustart ausführen; nach Integrationsupdates neu starten und den Client neu laden.
 6. Die Integration unter **Einstellungen → Geräte & Dienste** einrichten. Gewünschte Dashboardkarten mit den tatsächlichen Entitäten konfigurieren. Die mitgelieferten JS-Karten werden vom Backend automatisch eingebunden; keine zusätzlichen Kartendateien oder Ressourcen installieren.
 
-Ohne GitHub-Release wird der aktuelle Standardbranch bezogen; der vorliegende Stand bleibt eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. [Offizielle Bedienung](https://www.home-assistant.io/integrations/marketplace/) und [Versionsauswahl](https://contributors.home-assistant.io/marketplace/how-it-works/) erklären die Plattformdetails. Praktische Testgrenzen stehen getrennt im [Prüfstand](pruefstand.md); direkte native Installeraufrufe sind keine behauptete vollständige Browserabnahme.
+Mit **v0.1.0** wird der festgelegte Release-Tag statt des jeweils neuesten Main-Commits installiert. `zip_release: false` bleibt erhalten: der automatische Installer nutzt die Quelldateien dieses Tags, nicht das zusätzlich angehängte ZIP. [Offizielle Bedienung](https://www.home-assistant.io/integrations/marketplace/) und [Versionsauswahl](https://contributors.home-assistant.io/marketplace/guides/releases/) erklären die Plattformdetails. Praktische Testgrenzen stehen getrennt im [Prüfstand](pruefstand.md); direkte native Installeraufrufe sind keine behauptete vollständige Browserabnahme.
 
 **Bei einer schon vorhandenen Originalinstallation hier stoppen und zuerst die folgenden Wechselhinweise lesen.** Nicht auf Verdacht die HA-Integration, deren Einträge oder Geräte löschen.
 
@@ -39,13 +39,13 @@ Ohne GitHub-Release wird der aktuelle Standardbranch bezogen; der vorliegende St
 
 **Nur Ausweichweg für Entwicklung oder eine nicht verfügbare Automatikroute.** Für eine normale Neuinstallation den benutzerdefinierten Repositoryweg oben verwenden.
 
-1. Im Fork den Branch `main` auswählen und das Source-Archiv über GitHub herunterladen. Für eine reproduzierbare Installation den konkreten Commit festhalten; `main` kann sich ändern.
+1. Im Fork den Tag **v0.1.0** auswählen und dessen Source-Archiv über GitHub herunterladen. Den konkreten Tag und Commit festhalten; `main` kann sich ändern.
 2. Entpacken. Im Archiv den Ordner `custom_components/handballnet` suchen.
 3. Nur diesen Ordner samt `www`, Übersetzungen, Sensoren, Kalendern und übrigen enthaltenen Dateien in das Home-Assistant-Konfigurationsverzeichnis unter `custom_components/handballnet` übernehmen.
 4. Prüfen: Unter `custom_components/handballnet` muss direkt `manifest.json` liegen, nicht erst in einem weiteren Unterordner. Keine Dateien aus dem Entwicklungsordner `config` übernehmen.
 5. Home Assistant neu starten und die Integration über die Oberfläche hinzufügen; siehe [Neueinrichtung](../README.md#neueinrichtung).
 
-Ein Source-Archiv des Repositories ist nicht dasselbe wie das frühere Integrations-Release-ZIP des Originals. Für diese Route ist kein Release-Asset erforderlich.
+Ein Source-Archiv des Repositories enthält den Unterordner `custom_components/handballnet`. Das zusätzliche Release-Asset `handballnet.zip` enthält dagegen direkt die Dateien der Integration. Diese beiden Archivlayouts nicht verwechseln. Für die normale automatische Route ist kein manuelles Archiv erforderlich.
 
 ## Vorhandene Installation manuell ersetzen
 
@@ -61,7 +61,7 @@ Ein Source-Archiv des Repositories ist nicht dasselbe wie das frühere Integrati
 
 Ab Home Assistant 2026.11 ist der Marketplace eingebaut. Der Fork wird als benutzerdefiniertes Repository über den [My-Link in der Hauptanleitung](../README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren) angeboten. Dafür ist eine GitHub-Verbindung erforderlich; eine benutzerdefinierte Quelle ist nicht dasselbe wie eine Aufnahme in den gemeinsamen Katalog. Für Neuinstallationen gilt die automatische Route oben; dieser Abschnitt betrifft den getrennten Quellenwechsel.
 
-Repository-Adresse: `https://github.com/Areaman51/hass-handball.net`, Kategorie **Integration**. Ohne vollständiges GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches; der vorliegende Stand ist daher ausdrücklich eine Entwicklungsversion. `zip_release: false` setzt kein Release-Asset voraus. Ein automatischer Neuinstallationsnachweis ist keine praktische Migrationsabnahme; die manuelle Source-Route bleibt ausdrücklich ein Ausweichweg.
+Repository-Adresse: `https://github.com/Areaman51/hass-handball.net`, Kategorie **Integration**, reguläre Version **v0.1.0**. `zip_release: false` setzt kein Release-Asset voraus. Ein automatischer Neuinstallationsnachweis ist keine praktische Migrationsabnahme; die manuelle Source-Route bleibt ausdrücklich ein Ausweichweg.
 
 Bei einem bereits über Marketplace/HACS verwalteten Original kann der bestehende Besitzer derselben Domain `handballnet` eine zweite Quelle blockieren. Deshalb:
 

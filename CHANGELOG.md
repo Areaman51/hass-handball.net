@@ -1,8 +1,28 @@
 # Changelog
 
-## Härtung vom 15. November 2026 – live abgenommen, weiterhin Entwicklungsstand
+## 0.1.0 – 16. November 2026
 
-Lokale Gesamtprüfungen und unabhängige Nachreviews sind abgeschlossen. Die sechs betroffenen Python-Laufzeitdateien wurden anschließend gezielt in einer HA-2026.11.1-Pilotinstallation aktiviert, technisch geprüft und am 16. November vom Pilotnutzer abgenommen. Kein vollständiger Quellenwechsel und kein stabiles Release. Der bisherige Entwicklungsstand folgt darunter unverändert.
+Erstes reguläres Release des Community-Forks **Areaman51/hass-handball.net**, aufgebaut auf dem MIT-lizenzierten Original von **miggi92** und der PR-88-Historie. Die bisherigen Urheberhinweise bleiben erhalten; Zusammenarbeit ist ausdrücklich willkommen.
+
+### Neu und verbessert
+
+- Zentrale Vereinslogo-Verwaltung im nativen Optionsdialog: Bildadresse, geprüfter Upload und Rückkehr zum API-Original. Gemeinsame persistente Zuordnungen erreichen alle drei Karten unmittelbar; individuelle Kartenausnahmen bleiben möglich.
+- Gut erkennbare 64×64-Logos bei „Nächstes Spiel“; kompakte Tabellen-/Spielplan- und Live-Ticker-Logos unverändert.
+- Mitgelieferte Team-, Tabellen- und Spielplankarte werden automatisch vom Backend geladen. Benutzerdefinierte Repositoryinstallation ohne Dateikopieren, separates Kartenpaket oder manuelle JS-Ressource.
+- Reparierter öffentlicher API-Token-Bootstrap, begrenzter 403-Retry, Fehlerweitergabe und zusätzliche HTML-/URL-/Textdekodierungssicherheit.
+- Kumulative HTTP-/Seiten-/Datensatz-/Fan-out- und Cachegrenzen, Erhalt numerischer Identifier und robuste Behandlung fehlender Spieltermine.
+- Deskriptorrelativer Uploadpfadschutz, serialisiertes Cleanup bei Abbruch und gehärtete Release-Paketierung mit gepinnten Actions.
+- Manifestversion `0.1.0` und Release-Tag `v0.1.0`; kein Python-/Kartencode gegenüber dem vorher live abgenommenen und veröffentlichten Härtungsstand geändert.
+
+### Installation und Grenzen
+
+Home Assistant ab **2026.11.0**, gezielte native Laufzeitprüfung auf **2026.11.1**. Im benutzerdefinierten Repository `v0.1.0` installieren, angeforderten Neustart ausführen und eigene Sportdaten/Dashboardkarten konfigurieren. Vor Aktualisierung oder Quellenwechsel sichern. Bestehende Config-Entries nicht löschen; Original und Fork nicht parallel installieren. Ein bestehender Original→Fork-Quellenwechsel, vollständiger visueller UI-/OAuth-Durchlauf und die ganze Funktions-/Versionsmatrix sind nicht abgenommen. Bekannte Aktionshandler-/Tabellenattribut-/Legacy-Pokalfallback-Grenzen und geerbte Git-Historie bleiben ausdrücklich offengelegt. Details: [Installation](docs/installation-und-umstieg.md), [Prüfstand](docs/pruefstand.md), [Sicherheit](SECURITY.md).
+
+Die folgenden Abschnitte dokumentieren die Entstehung und damaligen Abnahmen; „kein Release“ bezieht sich dort auf den jeweiligen historischen Zeitpunkt.
+
+## Historische Härtungsabnahme vom 15./16. November 2026
+
+Lokale Gesamtprüfungen und unabhängige Nachreviews waren abgeschlossen. Die sechs betroffenen Python-Laufzeitdateien wurden anschließend gezielt in einer HA-2026.11.1-Pilotinstallation aktiviert, technisch geprüft und am 16. November vom Pilotnutzer abgenommen. Bei diesem Einbau noch kein vollständiger Quellenwechsel und kein stabiles Release. Der damalige Entwicklungsstand folgt darunter unverändert.
 
 - Legacy-HTTP erhält expliziten Timeout und Redirect-Verbot; Bootstrap-/API-Antworten werden begrenzt gelesen.
 - Listen-/Seitenvalidierung, gemeinsame Requestslots und begrenzte Worker verhindern unbegrenzte Pagination und Task-Fan-outs. Kumulative dekomprimierte Bytebudgets, UTF-8-Feldgrenzen und größenbegrenzte Caches ergänzen die Einzelantwortlimits; Turnierarbeitsgrenzen greifen auch vor weiteren Unterabfragen und bei Cachetreffern. Grenzverletzungen sind Fehler statt erfolgreicher Teilergebnisse.

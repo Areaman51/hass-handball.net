@@ -8,8 +8,8 @@ Spielpläne, Tabellen, Mannschaften und Kalender von **handball.net** in Home As
 
 Dieser Fork führt Verbesserungen aus der PR-88-Historie, zusätzliche Reparaturen am API-Zugriff und Sicherheits-/Robustheitskorrekturen zusammen. Der öffentliche Source-Stand ist dadurch nicht vollständig bytegleich mit einer unverändert weiterlaufenden HA-Installation; eine Prüfung des Ausgangsstands belegt keine Ausrollung dieser zusätzlichen Änderungen. Er ist ein eigenständiges Community-Angebot, keine offizielle Integration von handball.net oder Home Assistant. Damit ist **keine Aussage über eine Aufgabe des Originalprojekts** verbunden. Zusammenarbeit mit dem Originalprojekt und anderen Beitragenden ist ausdrücklich willkommen.
 
-> **Entwicklungsstand: `0.0.32.dev0` auf `main`, kein veröffentlichtes Release.**
-> Eine vollständige Releaseabnahme liegt nicht vor. Insbesondere ist der Wechsel einer vorhandenen HACS-Installation vom Original zum Fork **noch nicht praktisch getestet**. Vor einem Umstieg unbedingt [Backup, Umstieg und Rollback](docs/installation-und-umstieg.md) lesen. Bestehende Home-Assistant-Konfigurationseinträge **nicht löschen**.
+> **Version `0.1.0` – erstes reguläres Community-Fork-Release:** [Release `v0.1.0`](https://github.com/Areaman51/hass-handball.net/releases/tag/v0.1.0).
+> Die vorher live abgenommene Härtung und die drei Karten sind enthalten. Das ist keine Garantie einer vollständigen Funktions-/Versionsmatrix. Insbesondere ist der Wechsel einer vorhandenen Originalinstallation zum Fork **noch nicht praktisch getestet**. Vor einem Umstieg unbedingt [Backup, Umstieg und Rollback](docs/installation-und-umstieg.md) lesen. Bestehende Home-Assistant-Konfigurationseinträge **nicht löschen**.
 
 [English summary](docs/README.en.md) · [Änderungen](CHANGELOG.md) · [Mitmachen](CONTRIBUTING.md) · [Sicherheit und historische Daten](SECURITY.md)
 
@@ -40,7 +40,7 @@ Die Daten kommen von einem externen Dienst. Vollständigkeit, Verfügbarkeit und
 
 ## Installation
 
-Voraussetzungen: eine gesicherte Home-Assistant-Installation, ausgehender HTTPS-Zugriff auf handball.net und die Bereitschaft, eine Entwicklungsversion zu testen. `hacs.json` nennt derzeit Home Assistant **2026.11.0** als Mindestversion; das ist keine Zusage einer vollständig getesteten Kompatibilitätsmatrix.
+Voraussetzungen: eine gesicherte Home-Assistant-Installation und ausgehender HTTPS-Zugriff auf handball.net. `hacs.json` nennt Home Assistant **2026.11.0** als Mindestversion; gezielte native Prüfungen erfolgten auf **2026.11.1**, keine Zusage einer vollständig getesteten Kompatibilitätsmatrix.
 
 <a id="marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet"></a>
 
@@ -53,13 +53,13 @@ Voraussetzungen: eine gesicherte Home-Assistant-Installation, ausgehender HTTPS-
 1. Den Button öffnen und die eigene Home-Assistant-Instanz auswählen. Alternativ **Einstellungen → Marketplace → Aus Link hinzufügen** öffnen; die Bezeichnung kann je nach Sprache leicht abweichen.
 2. Als Repository `https://github.com/Areaman51/hass-handball.net` angeben und **Integration** wählen, falls nach einer Kategorie gefragt wird. Das ist die Quelle des Forks, nicht das Originalrepository.
 3. Falls nötig die Marketplace-Warnung bestätigen und die angebotene **GitHub-Verbindung** herstellen. Diese Verbindung gehört zu deiner HA-Instanz; kein persönlicher Token wird in dieser Integration eingetragen.
-4. Quelle hinzufügen, ihre Repositoryseite öffnen und **Installieren** wählen. Der Marketplace übernimmt Download und Dateiablage.
+4. Quelle hinzufügen, ihre Repositoryseite öffnen und **Installieren** wählen; für diesen Stand die reguläre Version **`v0.1.0`** verwenden. Der Marketplace übernimmt Download und Dateiablage.
 5. Falls Home Assistant einen Neustart verlangt, diesen über die Oberfläche durchführen. Nach einem Integrationsupdate HA neu starten und den Browser beziehungsweise die Companion-App neu laden.
 6. Bei einer **Neuinstallation** über **Einstellungen → Geräte & Dienste → Integration hinzufügen → Handball.net** ein Team, einen Verein oder eine Liga einrichten; siehe [Neueinrichtung](#neueinrichtung). Vorhandene Einträge bei einem Quellenwechsel nicht erneut anlegen.
 
 **Die drei Dashboard-Karten kommen mit.** Die Integration stellt deren JavaScript beim Laden automatisch bereit. Kein separates Frontend-Repository und kein händischer Eintrag unter Dashboard-Ressourcen ist erforderlich. Die gewünschte Karte und ihre Entitäten müssen anschließend im eigenen Dashboard ausgewählt beziehungsweise konfiguriert werden; das ist Einrichtung, keine zusätzliche Installation. Beispiele stehen unter [Dashboard-Karten](#dashboard-karten).
 
-Ohne veröffentlichtes GitHub-Release bezieht der Marketplace den letzten Commit von `main`; `zip_release: false` benötigt kein Release-Asset. Das bleibt ausdrücklich eine **Entwicklungsversion**, kein stabiles Release. Hinweise zu GitHub-Verbindung und Versionen: [offizielle Marketplace-Anleitung](https://www.home-assistant.io/integrations/marketplace/) und [Bezugsweg](https://contributors.home-assistant.io/marketplace/how-it-works/). Die genaue praktische Testgrenze wird im [Prüfstand](docs/pruefstand.md) dokumentiert; ein erfolgreicher nativer Installeraufruf ist nicht automatisch eine vollständige Browser- oder Quellenmigrationsabnahme.
+Für einen reproduzierbaren Stand **`v0.1.0`** statt des beweglichen Entwicklungsbranches `main` wählen. Tag und Manifest führen dieselbe Version (`v0.1.0` / `0.1.0`). `zip_release: false` bleibt bewusst erhalten: der Marketplace installiert die Quelldateien dieses Tags; das zusätzlich veröffentlichte `handballnet.zip` ist dafür nicht erforderlich. Hinweise zu GitHub-Verbindung und Versionen: [offizielle Marketplace-Anleitung](https://www.home-assistant.io/integrations/marketplace/) und [Releases](https://contributors.home-assistant.io/marketplace/guides/releases/). Die genaue praktische Testgrenze wird im [Prüfstand](docs/pruefstand.md) dokumentiert; ein erfolgreicher nativer Installeraufruf ist nicht automatisch eine vollständige Browser- oder Quellenmigrationsabnahme.
 
 **Bestehendes Original nicht parallel installieren oder löschen.** Original und Fork nutzen dieselbe Domain `handballnet`. Der kontrollierte Wechsel einer schon verwalteten Originalinstallation ist separat abzunehmen und bislang nicht praktisch getestet. Insbesondere nicht „Integration löschen“ oder „Löschen und deinstallieren“ wählen, um den Fork freizuschalten. Erst [Backup, Quellenwechsel und Rückweg](docs/installation-und-umstieg.md) lesen.
 
