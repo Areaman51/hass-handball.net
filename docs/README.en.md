@@ -4,9 +4,9 @@
 
 This is the community fork **Areaman51/hass-handball.net**, based on **miggi92/hass-handball.net** under the [MIT license](../LICENSE). Original copyright notices are retained. This fork does not imply that the original project has been abandoned. Collaboration with its maintainers and other contributors is welcome. This is not an official handball.net or Home Assistant integration.
 
-## Development status
+## Release status
 
-**0.0.32.dev0 on main is a development version, not a published fork release.** There has been no complete release acceptance. Switching an existing HACS installation from the original to this fork has **not been tested in practice**.
+**0.1.0 is the first regular community-fork release, tagged v0.1.0.** The release contains the previously live-accepted hardening and all three bundled cards. This does not imply a complete feature/version test matrix. Switching an existing original installation to this fork has **not been tested in practice**.
 
 The code combines the PR 88 history with additional public-client-token, request-scoped User-Agent, API/coordinator error-handling and security/robustness fixes. It is therefore not fully byte-identical to an unchanged running HA installation; validating a baseline does not mean those extra changes have been deployed. Python regression tests and additional Node tests are run locally. A real API smoke check of selected data paths succeeded, but this is not a full release acceptance. The pytest suite uses Home Assistant stubs when HA is absent; these are not real HA integration, browser or HACS migration tests. Final counts and results must refer to the specific tested commit. Existing GitHub workflows do not run pytest/Node.
 
@@ -18,10 +18,10 @@ Read the detailed [installation, migration and rollback guide in German](install
 
 1. Open **Settings → Marketplace → Add from link**, or use the [main guide's repository button](../README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren).
 2. Add `https://github.com/Areaman51/hass-handball.net` as an **Integration**. Accept the community-content warning and connect GitHub when prompted.
-3. Choose **Install** on its repository page. The Marketplace downloads and places the files itself. Follow any restart prompt; restart HA after integration updates.
+3. Choose **Install** on its repository page and select the regular **v0.1.0** version. The Marketplace downloads and places the files itself. Follow any restart prompt; restart HA after integration updates.
 4. Configure **Handball.net** under **Settings → Devices & services**. All three JavaScript cards are included and loaded automatically by the backend; no separate card repository or manual resource registration is needed. Configuring desired dashboard cards and their entity IDs is still required.
 
-The GitHub connection belongs to HA's Marketplace, not to a handball.net token field. Without a release, the latest default-branch commit is installed; `zip_release: false` requires no release asset. This remains a development version. See the [official Marketplace guide](https://www.home-assistant.io/integrations/marketplace/) and [version rules](https://contributors.home-assistant.io/marketplace/how-it-works/). The [verification record](pruefstand.md) distinguishes native installer tests from full browser and migration acceptance.
+The GitHub connection belongs to HA's Marketplace, not to a handball.net token field. Choose **v0.1.0** for a fixed release instead of the moving `main` branch. `zip_release: false` remains intentional: the automatic installer uses tagged source files, not the optional attached `handballnet.zip`. See the [official Marketplace guide](https://www.home-assistant.io/integrations/marketplace/) and [version rules](https://contributors.home-assistant.io/marketplace/guides/releases/). The [verification record](pruefstand.md) distinguishes native installer tests from full browser and migration acceptance.
 
 For an existing original installation, create a full HA backup and preserve the previous complete component directory before changing sources. **Do not delete existing HA config entries, edit .storage, or install original and fork side by side.** Both use `handballnet`; a domain-owner conflict can block a second source. Do not select deletion/uninstallation just to unblock the fork. The controlled source migration remains untested. Manual source copying is documented only as a fallback, not the normal installation route. A full backup restore reverts later changes in its restored scope and needs a deliberate recovery decision.
 

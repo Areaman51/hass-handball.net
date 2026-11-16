@@ -46,6 +46,6 @@ Die Tests mit HA-Stubs sind **keine echten Home-Assistant-Integrationstests**. E
 
 ## Pull-Request-Beschreibung
 
-Kurz nennen: Problem, Änderung, Kompatibilitäts-/Migrationsfolgen, tatsächlich ausgeführte Tests und offene Prüfungen. Versions- oder Releasebehauptungen nur dann machen, wenn das entsprechende Artefakt und die Abnahme vorliegen. Der aktuelle Stand `0.0.32.dev0` auf `main` ist eine Entwicklungsversion; ein HACS-Quellenwechsel ist noch nicht praktisch abgenommen.
+Kurz nennen: Problem, Änderung, Kompatibilitäts-/Migrationsfolgen, tatsächlich ausgeführte Tests und offene Prüfungen. Versions- oder Releasebehauptungen nur dann machen, wenn das entsprechende Artefakt und die Abnahme vorliegen. Die reguläre Fork-Version ist `0.1.0` mit Release-Tag `v0.1.0`; `main` kann danach weitere Entwicklung enthalten. Ein Original→Fork-Quellenwechsel ist noch nicht praktisch abgenommen.
 
 Es gibt keine garantierte Reaktions- oder Supportzeit. Sponsoring des Originals ist keine Supportzusage dieses Forks.
