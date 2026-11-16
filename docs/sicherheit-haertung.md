@@ -1,8 +1,14 @@
-# Lokale Härtung – 15. November 2026
+# Härtung und Live-Abnahme – 15./16. November 2026
 
 [Zur Sicherheitsübersicht](../SECURITY.md) · [Prüfstand](pruefstand.md)
 
-**Status:** lokale Implementierung, Gesamtprüfungen und unabhängige Nachreviews abgeschlossen. Die Ressourcenlücken, der Bestandsfehler bei undatierten Spielen und die zwischenzeitliche Cache-Regression bei numerischen Phasen-IDs sind im geprüften Umfang geschlossen. Upload-Pfadschutz, Upload-Abbruchbehandlung und Release-/Workflowhärtung haben ihr separates unabhängiges Nachreview bestanden. Der eingefrorene Gesamtstand besteht 389 Stub- und 144 Node-Tests, zusätzlich 202 native HTTP-Zieltests, sechs native Upload-Cancellationtests und den Vier-Schritte-Logo-Smoke. Kein bestätigter offener Sicherheits-/Logikblocker im geprüften Umfang; keine lückenlose Sicherheitsgarantie. **Nicht live installiert, gepusht oder als Release veröffentlicht.** Ein Live-Pilot benötigt gesonderte Freigabe und Abnahme; die vorherige Logo-Abnahme ersetzt sie nicht.
+**Status:** lokale Implementierung, Gesamtprüfungen und unabhängige Nachreviews abgeschlossen. Die Ressourcenlücken, der Bestandsfehler bei undatierten Spielen und die zwischenzeitliche Cache-Regression bei numerischen Phasen-IDs sind im geprüften Umfang geschlossen. Upload-Pfadschutz, Upload-Abbruchbehandlung und Release-/Workflowhärtung haben ihr separates unabhängiges Nachreview bestanden. Der eingefrorene Gesamtstand besteht 389 Stub- und 144 Node-Tests, zusätzlich 202 native HTTP-Zieltests, sechs native Upload-Cancellationtests und den Vier-Schritte-Logo-Smoke. Anschließend wurden die sechs Python-Laufzeitdateien gezielt in einer HA-2026.11.1-Pilotinstallation aktiviert, technisch überprüft und am 16. November vom Nutzer abgenommen. Kein bestätigter offener Sicherheits-/Logikblocker im geprüften Umfang; keine lückenlose Sicherheitsgarantie, vollständige Quellenmigration oder stabile Releasefreigabe.
+
+## Gezielter Live-Pilot
+
+Fünf vorhandene Pythondateien wurden ersetzt und `resource_limits.py` ergänzt, nach vorheriger vollständiger Integrations-/Objektsicherung und mit genau einem freigegebenen Core-Neustart. Alle Nicht-Bytecode-Dateien wurden zurückgelesen: nur die genehmigten Laufzeitpfade änderten sich. Manifestmetadaten, vorhandene Optionen, Dashboardkonfigurationen, Entitätszuordnungen, zentrale Logo-Registry und vorhandene Grafiken wurden erhalten. Beide vorhandenen Einträge blieben geladen, reguläre Team-/Tabellen-/Spielplandaten vollständig, Tabellenpositionen und Gesundheitszustand erhalten. Die eigene Dashboardansicht wurde vom Pilotnutzer zusätzlich bestätigt.
+
+Es gab keine produktiven Angriffsproben, Test-Uploads, Reset-/Restore-Manöver oder direkte `.storage`-Schreibzugriffe. Der Uploadpfad wurde im Pilot nur lesend untersucht; seine Sicherheitsgrenzen sind nativ isoliert geprüft. Eine fremde Ressourcen-Versionsänderung beim Neustart wurde abgegrenzt und nicht zurückgedreht. Das ist ein gezielter Backendpilot, kein Vollbackupnachweis, vollständiger HA-Audit oder Marketplace-/HACS-Quellenwechsel.
 
 ## HTTP und Ressourcen
 
@@ -39,7 +45,7 @@ Der Release-Tag wird ausschließlich über `RELEASE_TAG` übergeben, nicht als S
 
 Manifestversionen werden per JSON geändert und das bisherige `handballnet.zip` mit der Python-Standardbibliothek gebaut. Alle verwendeten Actions sind auf über die offiziellen Repositories aufgelöste Commit-IDs gepinnt; das ist kein vollständiges Audit ihrer eigenen oder transitiven Actioncodes. Beide Checkouts persistieren keine Zugangsdaten. Nur der bestehende Publisherjob hat die zum Assetupload erforderlichen Schreibrechte. Ein späteres Aktualisieren der Pins erfordert erneut Herkunftsprüfung.
 
-Die Workflowänderung ist nur lokal geprüft. Sie erweitert weder OAuthrechte noch umgeht sie fehlenden `workflow`-Scope. Es wurde kein Release, Tag oder echter GitHub-Workflowlauf erzeugt. Eine automatische pytest-/Node-Pipeline wurde nicht hinzugefügt.
+Der Workflow wurde lokal mit Actionlint/ShellCheck und echten temporären Manifest-/ZIP-Tests geprüft. Für seine Veröffentlichung wurde der erforderliche GitHub-`workflow`-Scope gesondert per offiziellem Freigabedialog bestätigt, nicht umgangen. Es wurde kein Release oder Tag als Teil dieses Source-Stands angelegt; tatsächliche GitHub-Läufe sind am jeweiligen Commit gesondert zu prüfen. Eine automatische pytest-/Node-Pipeline wurde nicht hinzugefügt.
 
 ## Ausgeführte lokale Prüfungen
 
@@ -52,4 +58,4 @@ Die Workflowänderung ist nur lokal geprüft. Sie erweitert weder OAuthrechte no
 - Lokale Actionlint-/ShellCheck-Prüfung und echte temporäre Manifest-/ZIP-Pakettests bestanden. Keine grüne Remote-CI behauptet.
 - Bandit: keine Scanfehler, keine High-/Medium-Treffer. Zwei Low-Kandidaten sind ein interner Cache-Schlüssel und die feste öffentliche Bootstrap-Adresse, keine eingebauten Kennwörter.
 
-Die unabhängigen Nachreviews und Parent-Gesamtprüfungen sind abgeschlossen. Der Upload-Cancellationfehler und die zwischenzeitliche Cache-Regression wurden vor ihren jeweiligen Fixes nativ reproduziert und danach erfolgreich gegengeprüft; die früheren Ressourcen-/Datumsbefunde bleiben durch unveränderte Quellen und gezielte Regressionen geschlossen. Das ist eine lokale Code-/Testfreigabe, keine Live-, Marketplace- oder Releaseabnahme. Keine Produktionsangriffe, keine Liveänderung und keine erneute vollständige Advisory-Prüfung aller produktiven Fremdpakete. Die dokumentierte Belastung der geerbten Git-Historie bleibt davon unberührt.
+Die unabhängigen Nachreviews und Parent-Gesamtprüfungen sind abgeschlossen. Der Upload-Cancellationfehler und die zwischenzeitliche Cache-Regression wurden vor ihren jeweiligen Fixes nativ reproduziert und danach erfolgreich gegengeprüft; die früheren Ressourcen-/Datumsbefunde bleiben durch unveränderte Quellen und gezielte Regressionen geschlossen. Der gezielte Backendpilot und seine Nutzerabnahme sind oben separat beschrieben. Keine Produktionsangriffe, vollständige Marketplace-/Releaseabnahme oder erneute vollständige Advisory-Prüfung aller produktiven Fremdpakete. Die dokumentierte Belastung der geerbten Git-Historie bleibt davon unberührt.

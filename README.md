@@ -42,31 +42,30 @@ Die Daten kommen von einem externen Dienst. Vollständigkeit, Verfügbarkeit und
 
 Voraussetzungen: eine gesicherte Home-Assistant-Installation, ausgehender HTTPS-Zugriff auf handball.net und die Bereitschaft, eine Entwicklungsversion zu testen. `hacs.json` nennt derzeit Home Assistant **2026.11.0** als Mindestversion; das ist keine Zusage einer vollständig getesteten Kompatibilitätsmatrix.
 
-### Manuell aus Source – nachvollziehbarer Installationsweg
+<a id="marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet"></a>
 
-1. Den Branch **`main` dieses Forks** als Source-Archiv herunterladen: im Fork auf GitHub **Code → Download ZIP**, nachdem `main` ausgewählt wurde. Für reproduzierbare Installationen den verwendeten Commit notieren.
-2. Archiv entpacken. Nur den darin enthaltenen Ordner **`custom_components/handballnet`** einschließlich seiner Unterordner verwenden, nicht das gesamte Repository.
-3. Diesen Ordner in das Home-Assistant-Konfigurationsverzeichnis unter **`custom_components/handballnet`** kopieren. Das ist ein Pfad relativ zu deiner HA-Konfiguration; der tatsächliche Speicherort hängt von deiner Installation ab.
-4. Bei vorhandener Installation erst das [Umstiegsverfahren](docs/installation-und-umstieg.md) befolgen: vollständiges Backup, bisherige Integrationsdateien separat sichern, Home Assistant stoppen und den alten Komponentenordner vollständig ersetzen. Keine zweite Kopie und keine verschachtelten `handballnet/handballnet`-Ordner anlegen.
-5. Home Assistant starten beziehungsweise nach einer Neueinrichtung neu starten. Protokoll auf Ladefehler prüfen.
-6. Erst bei einer **wirklichen Neuinstallation** die Integration wie unten beschrieben hinzufügen. Bei einem Umstieg vorhandene Einträge weiterverwenden.
+### Empfohlen: benutzerdefiniertes Repository – ohne Dateikopieren
 
-Ein Fork-Release-Asset wird hierfür nicht benötigt. Die Entwicklungsversion ist kein bereits abgenommenes Release-ZIP.
-
-### Marketplace als benutzerdefiniertes Repository – Migration noch ungetestet
-
-Seit Home Assistant 2026.11 gehört der Marketplace zu Home Assistant; er verwendet denselben Katalog und dieselbe `hacs.json` wie HACS. Der Fork ist **noch nicht im gemeinsamen Standardkatalog gelistet**. Als benutzerdefinierte Quelle kann er über den offiziellen My-Link angeboten werden:
+**Eine Aufnahme in den Standardkatalog ist dafür nicht nötig.** Der ab Home Assistant 2026.11 eingebaute Marketplace kann dieses öffentliche Repository selbst installieren und aktualisieren. Es müssen weder HACS separat installiert noch ZIP-Dateien heruntergeladen, Python-Dateien kopiert oder zusätzliche Kartenpakete installiert werden.
 
 [![Repository im Marketplace öffnen](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Areaman51&repository=hass-handball.net&category=integration)
 
-- Repository: `https://github.com/Areaman51/hass-handball.net`
-- Kategorie: **Integration**
-- Eine GitHub-Verbindung ist für benutzerdefinierte Quellen erforderlich. Die Oberfläche bietet gegebenenfalls zunächst das Hinzufügen der Quelle an.
-- Ohne veröffentlichtes GitHub-Release verwendet der Marketplace den letzten Commit des Standardbranches. Das ist hier weiterhin ein **Entwicklungsstand**, kein stabiles Release. `zip_release: false` setzt kein Release-Asset voraus.
+1. Den Button öffnen und die eigene Home-Assistant-Instanz auswählen. Alternativ **Einstellungen → Marketplace → Aus Link hinzufügen** öffnen; die Bezeichnung kann je nach Sprache leicht abweichen.
+2. Als Repository `https://github.com/Areaman51/hass-handball.net` angeben und **Integration** wählen, falls nach einer Kategorie gefragt wird. Das ist die Quelle des Forks, nicht das Originalrepository.
+3. Falls nötig die Marketplace-Warnung bestätigen und die angebotene **GitHub-Verbindung** herstellen. Diese Verbindung gehört zu deiner HA-Instanz; kein persönlicher Token wird in dieser Integration eingetragen.
+4. Quelle hinzufügen, ihre Repositoryseite öffnen und **Installieren** wählen. Der Marketplace übernimmt Download und Dateiablage.
+5. Falls Home Assistant einen Neustart verlangt, diesen über die Oberfläche durchführen. Nach einem Integrationsupdate HA neu starten und den Browser beziehungsweise die Companion-App neu laden.
+6. Bei einer **Neuinstallation** über **Einstellungen → Geräte & Dienste → Integration hinzufügen → Handball.net** ein Team, einen Verein oder eine Liga einrichten; siehe [Neueinrichtung](#neueinrichtung). Vorhandene Einträge bei einem Quellenwechsel nicht erneut anlegen.
 
-Dies beschreibt den [offiziellen Bezugsweg](https://contributors.home-assistant.io/marketplace/guides/catalog/), **keine bereits praktisch abgenommene Marketplace-Neuinstallation oder Quellenmigration**. Der gezielte Backend-/Karteneinbau in einer Pilotinstallation ist davon getrennt; siehe [Prüfstand](docs/pruefstand.md). Eine Aufnahme in den gemeinsamen Katalog erfordert unter anderem erfolgreiche Validierungen, ein vollständiges Release und eine gesonderte Katalogprüfung.
+**Die drei Dashboard-Karten kommen mit.** Die Integration stellt deren JavaScript beim Laden automatisch bereit. Kein separates Frontend-Repository und kein händischer Eintrag unter Dashboard-Ressourcen ist erforderlich. Die gewünschte Karte und ihre Entitäten müssen anschließend im eigenen Dashboard ausgewählt beziehungsweise konfiguriert werden; das ist Einrichtung, keine zusätzliche Installation. Beispiele stehen unter [Dashboard-Karten](#dashboard-karten).
 
-Der Wechsel eines bereits über Marketplace/HACS verwalteten Original-Repositories zum Fork ist noch nicht real getestet. **Nicht die Integration in Home Assistant löschen und nicht Original und Fork parallel installieren.** Beide nutzen dieselbe Domain `handballnet`; ein anderer Besitzer derselben Domain kann die Installation blockieren. Details und Rückweg: [Installation und Umstieg](docs/installation-und-umstieg.md).
+Ohne veröffentlichtes GitHub-Release bezieht der Marketplace den letzten Commit von `main`; `zip_release: false` benötigt kein Release-Asset. Das bleibt ausdrücklich eine **Entwicklungsversion**, kein stabiles Release. Hinweise zu GitHub-Verbindung und Versionen: [offizielle Marketplace-Anleitung](https://www.home-assistant.io/integrations/marketplace/) und [Bezugsweg](https://contributors.home-assistant.io/marketplace/how-it-works/). Die genaue praktische Testgrenze wird im [Prüfstand](docs/pruefstand.md) dokumentiert; ein erfolgreicher nativer Installeraufruf ist nicht automatisch eine vollständige Browser- oder Quellenmigrationsabnahme.
+
+**Bestehendes Original nicht parallel installieren oder löschen.** Original und Fork nutzen dieselbe Domain `handballnet`. Der kontrollierte Wechsel einer schon verwalteten Originalinstallation ist separat abzunehmen und bislang nicht praktisch getestet. Insbesondere nicht „Integration löschen“ oder „Löschen und deinstallieren“ wählen, um den Fork freizuschalten. Erst [Backup, Quellenwechsel und Rückweg](docs/installation-und-umstieg.md) lesen.
+
+### Manueller Ausweichweg
+
+Nur falls die automatische Route nicht zur Verfügung steht oder für Entwicklungstests bewusst umgangen werden soll: [manuelle Source-Installation](docs/installation-und-umstieg.md#neue-manuelle-installation). Sie ist **nicht** der normale Installationsweg und keine Voraussetzung für die benutzerdefinierte Quelle.
 
 ## Neueinrichtung
 

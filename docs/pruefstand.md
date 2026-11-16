@@ -2,9 +2,9 @@
 
 Stand: **12. November 2026**. Dieser Prüfstand umfasst die Sicherheits-/API-Basis, individuelle Logoquellen, zentrale Logo-Verwaltung und größere Nächstes-Spiel-Logos. Nach isolierten Prüfungen wurde ein gezielter Backend-/Karteneinbau in einer HA-2026.11.1-Pilotinstallation mit bestehenden Einträgen geprüft und vom Nutzer abgenommen. Kein vollständiger Marketplace-/HACS-Quellenwechsel und keine vollständige Releaseabnahme.
 
-## Lokaler Härtungskandidat – 15. November 2026
+## Härtung und gezielter Live-Pilot – 15./16. November 2026
 
-Lokale Implementierung, Parent-Gesamtprüfungen und unabhängige Nachreviews abgeschlossen. Noch nicht live installiert, gepusht oder als Release veröffentlicht. Das erste HTTP-Nachreview fand trotz grüner Tests eine Cache-Regression bei numerischen Phasen-IDs; der gezielte zweite Fix ist unabhängig nachgeprüft und geschlossen. Kein bestätigter offener Sicherheits-/Logikblocker im geprüften Umfang; keine vollständige Sicherheitsgarantie oder Livefreigabe allein aufgrund grüner Tests.
+Lokale Implementierung, Parent-Gesamtprüfungen und unabhängige Nachreviews abgeschlossen. Das erste HTTP-Nachreview fand trotz grüner Tests eine Cache-Regression bei numerischen Phasen-IDs; der gezielte zweite Fix ist unabhängig nachgeprüft und geschlossen. Anschließend sechs Laufzeitpfade nach Sicherung mit genau einem genehmigten Core-Neustart gezielt in HA2026.11.1 aktiviert und alle Quelldateien zurückgelesen. Bestehende Einträge, reguläre Daten, Optionen, Dashboards und Logos erhalten; eigene Nutzeransicht am 16. November bestätigt. Kein bestätigter offener Sicherheits-/Logikblocker im geprüften Umfang; keine vollständige Sicherheitsgarantie, Quellenmigration oder stabile Releasefreigabe.
 
 - Erster eingefrorener Gesamtexport vor Reviewkorrekturen: **337 Python- und 144 Node-Tests bestanden**. Nach den Korrekturen im zusammengeführten Arbeitsstand vom Parent erneut **371 Python- und 144 Node-Tests bestanden**. Die ursprünglichen 155 Python-Tests wurden vor der Umsetzung separat als unveränderte Baseline ausgeführt; Fehlerkorrekturen sind mit echten Rot-/Grün-Läufen belegt.
 - Abschließender eingefrorener Gesamtstand nach dem Identifierfix: **389 Stub- und 144 Node-Tests bestanden**, vom Parent selbst ausgeführt. Originale String-/Integer-IDs bleiben erhalten; native Team-/Club-Folgeupdates behalten Tabellenplätze und nutzen den Cache.
@@ -12,7 +12,7 @@ Lokale Implementierung, Parent-Gesamtprüfungen und unabhängige Nachreviews abg
 - Abschließend **202 native HTTP-Zieltests bestanden** (184 vor den neuen Identifierfällen); nach Upload-Korrektur zusätzlich **sechs native Cancellationtests bestanden**. Ein zusätzlicher nativer Gesamtlauf aller Stub-Tests ist wegen Logo-/Options-Fixtures mit Stubannahmen nicht grün; diese gezielten nativen Ergebnisse sind keine vollständige native Gesamtsuite.
 - Ruff E9/F63/F7/F82, JS-Syntax und lokale Actionlint-/ShellCheck-Prüfungen bestanden. Kein Anspruch auf grünes vollständiges Ruff-Regelwerk oder erfolgreiche GitHub-CI.
 - Bandit ohne Scanfehler und ohne High-/Medium-Treffer; zwei Low-Kandidaten im HTTP-Client sind weiterhin der interne Token-Cache-Schlüssel und eine feste öffentliche Bootstrap-Adresse, keine Kennwörter.
-- Grenzen und Verhalten bei Überschreitung sowie Upload-Kompatibilität: [Lokale Härtung](sicherheit-haertung.md). Dieser Teststand ist keine neue Marketplace-/Migrations- oder Liveabnahme.
+- Grenzen und Verhalten bei Überschreitung sowie Upload-Kompatibilität: [Härtung und Live-Abnahme](sicherheit-haertung.md). Der gezielte Backendpilot ist keine vollständige Marketplace-/Migrations- oder Releaseabnahme.
 
 ## Zentrale Logo-Verwaltung – 12. November 2026
 

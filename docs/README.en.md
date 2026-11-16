@@ -14,13 +14,18 @@ The code combines the PR 88 history with additional public-client-token, request
 
 Read the detailed [installation, migration and rollback guide in German](installation-und-umstieg.md) before changing an existing installation.
 
-1. Create a full Home Assistant backup, keep it outside the running instance, and verify that any required recovery key is available. Also preserve the complete previous component directory separately.
-2. Download this fork's **main source archive** and note the commit. Copy only `custom_components/handballnet` into the corresponding directory relative to your HA configuration, including all subdirectories.
-3. For replacement, stop HA first and replace the whole old component directory rather than mixing individual files. Start HA and verify existing entries, entities, calendars and dashboards.
-4. **Do not delete existing HA config entries. Do not edit .storage. Do not install the original and the fork side by side.** Both use the domain `handballnet`.
-5. A code-only rollback means stopping HA and restoring the entire saved previous component directory. Deleted entries or registries cannot be recovered by restoring Python files; a backup restore may then be required and reverts later changes in the restored scope.
+**Recommended: install as a custom repository, without copying files.** Catalogue inclusion is not required. On Home Assistant 2026.11 or newer, the Marketplace is built in; there is no separate HACS installation step.
 
-Home Assistant 2026.11 includes the Marketplace, which shares the HACS catalogue and `hacs.json` format. The [main guide's Marketplace link](../README.md#marketplace-als-benutzerdefiniertes-repository--migration-noch-ungetestet) offers this fork as a custom **Integration** repository; a GitHub connection is required. Without published releases, the Marketplace uses the latest default-branch commit, still a development version. No default-catalogue inclusion, successful Marketplace installation or practical source migration is claimed. Original and fork use the same domain, so an existing domain owner may block the second repository. Keep HA entries and follow the migration precautions rather than deleting them.
+1. Open **Settings → Marketplace → Add from link**, or use the [main guide's repository button](../README.md#empfohlen-benutzerdefiniertes-repository--ohne-dateikopieren).
+2. Add `https://github.com/Areaman51/hass-handball.net` as an **Integration**. Accept the community-content warning and connect GitHub when prompted.
+3. Choose **Install** on its repository page. The Marketplace downloads and places the files itself. Follow any restart prompt; restart HA after integration updates.
+4. Configure **Handball.net** under **Settings → Devices & services**. All three JavaScript cards are included and loaded automatically by the backend; no separate card repository or manual resource registration is needed. Configuring desired dashboard cards and their entity IDs is still required.
+
+The GitHub connection belongs to HA's Marketplace, not to a handball.net token field. Without a release, the latest default-branch commit is installed; `zip_release: false` requires no release asset. This remains a development version. See the [official Marketplace guide](https://www.home-assistant.io/integrations/marketplace/) and [version rules](https://contributors.home-assistant.io/marketplace/how-it-works/). The [verification record](pruefstand.md) distinguishes native installer tests from full browser and migration acceptance.
+
+For an existing original installation, create a full HA backup and preserve the previous complete component directory before changing sources. **Do not delete existing HA config entries, edit .storage, or install original and fork side by side.** Both use `handballnet`; a domain-owner conflict can block a second source. Do not select deletion/uninstallation just to unblock the fork. The controlled source migration remains untested. Manual source copying is documented only as a fallback, not the normal installation route. A full backup restore reverts later changes in its restored scope and needs a deliberate recovery decision.
+
+No default-catalogue application or additional release is required for this custom-repository route. A successful fresh installation does not prove that an existing original repository can be migrated without further work; keep these acceptance boundaries separate.
 
 ## Setup
 
